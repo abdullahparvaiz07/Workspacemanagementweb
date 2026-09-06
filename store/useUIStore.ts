@@ -1,8 +1,10 @@
 import { create } from 'zustand';
+import { TaskStatus } from '@/types';
 
 interface UIStore {
   isCommandPaletteOpen: boolean;
   isCreateTaskModalOpen: boolean;
+  createTaskDefaultStatus: TaskStatus | null;
   isCreateProjectModalOpen: boolean;
   isInviteMemberModalOpen: boolean;
   isCreateWorkspaceModalOpen: boolean;
@@ -11,7 +13,7 @@ interface UIStore {
 
   setCommandPaletteOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
-  setCreateTaskModalOpen: (open: boolean) => void;
+  setCreateTaskModalOpen: (open: boolean, defaultStatus?: TaskStatus | null) => void;
   setCreateProjectModalOpen: (open: boolean) => void;
   setInviteMemberModalOpen: (open: boolean) => void;
   setCreateWorkspaceModalOpen: (open: boolean) => void;
@@ -22,6 +24,7 @@ interface UIStore {
 export const useUIStore = create<UIStore>((set) => ({
   isCommandPaletteOpen: false,
   isCreateTaskModalOpen: false,
+  createTaskDefaultStatus: null,
   isCreateProjectModalOpen: false,
   isInviteMemberModalOpen: false,
   isCreateWorkspaceModalOpen: false,
@@ -30,7 +33,7 @@ export const useUIStore = create<UIStore>((set) => ({
 
   setCommandPaletteOpen: (open) => set({ isCommandPaletteOpen: open }),
   toggleCommandPalette: () => set((state) => ({ isCommandPaletteOpen: !state.isCommandPaletteOpen })),
-  setCreateTaskModalOpen: (open) => set({ isCreateTaskModalOpen: open }),
+  setCreateTaskModalOpen: (open, defaultStatus = null) => set({ isCreateTaskModalOpen: open, createTaskDefaultStatus: defaultStatus }),
   setCreateProjectModalOpen: (open) => set({ isCreateProjectModalOpen: open }),
   setInviteMemberModalOpen: (open) => set({ isInviteMemberModalOpen: open }),
   setCreateWorkspaceModalOpen: (open) => set({ isCreateWorkspaceModalOpen: open }),

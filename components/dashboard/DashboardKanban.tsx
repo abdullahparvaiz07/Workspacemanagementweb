@@ -35,6 +35,9 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
     data: { task },
   });
 
+  const projects = useProjectStore((s) => s.projects);
+  const members = useAuthStore((s) => s.members);
+
   const style = transform
     ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
@@ -49,7 +52,9 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
     urgent: 'bg-purple-100 text-purple-700',
   };
 
-  const completedSubtasks = task.subtasks.filter((st) => st.completed).length;
+  const project = projects.find((p) => p.id === task.projectId);
+  const assignee = members.find((m) => m.id === task.assigneeId) || (task as any).assignee;
+  const completedSubtasks = task.subtasks?.filter((st) => st.completed).length || 0;
 
   return (
     <div
@@ -59,12 +64,12 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
       {...attributes}
       onClick={onClick}
       className={`bg-white p-3.5 rounded-xl border border-zinc-200/80 shadow-2xs hover:shadow-md transition-all space-y-2.5 cursor-grab active:cursor-grabbing group ${
-        task.status === 'completed' ? 'opacity-85' : ''
+        task.status === 'completed' || task.status === 'done' ? 'opacity-85' : ''
       }`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[9px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded-md">
-          {task.category}
+        <span className="text-[9px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded-md truncate max-w-[120px]">
+          {project?.name || task.category || 'General'}
         </span>
         <span
           className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
@@ -77,19 +82,19 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
 
       <h4
         className={`text-xs font-bold text-zinc-900 leading-snug group-hover:text-amber-900 transition-colors ${
-          task.status === 'completed' ? 'line-through text-zinc-400' : ''
+          task.status === 'completed' || task.status === 'done' ? 'line-through text-zinc-400' : ''
         }`}
       >
         {task.title}
       </h4>
 
       <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-[10px] text-zinc-400 font-medium">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1">
             <CalendarIcon className="w-3 h-3 text-zinc-400" />
             {task.dueDate}
           </span>
-          {task.subtasks.length > 0 && (
+          {task.subtasks && task.subtasks.length > 0 && (
             <span className="flex items-center gap-1">
               <CheckSquare className="w-3 h-3 text-zinc-400" />
               {completedSubtasks}/{task.subtasks.length}
@@ -102,6 +107,15 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
             </span>
           )}
         </div>
+
+        {assignee && (
+          <img
+            src={assignee.avatar}
+            alt={assignee.name}
+            title={assignee.name}
+            className="w-5 h-5 rounded-full object-cover ring-1 ring-white"
+          />
+        )}
       </div>
     </div>
   );
@@ -200,7 +214,7 @@ export function DashboardKanban() {
     if (localSearch.trim()) {
       return (
         t.title.toLowerCase().includes(localSearch.toLowerCase()) ||
-        t.category.toLowerCase().includes(localSearch.toLowerCase())
+        (t.category && t.category.toLowerCase().includes(localSearch.toLowerCase()))
       );
     }
     return true;
@@ -210,7 +224,7 @@ export function DashboardKanban() {
     { id: 'todo', title: 'Todo', color: 'bg-amber-400' },
     { id: 'in-progress', title: 'In Progress', color: 'bg-blue-500' },
     { id: 'review', title: 'Review', color: 'bg-purple-500' },
-    { id: 'completed', title: 'Done', color: 'bg-emerald-500' },
+    { id: 'done', title: 'Done', color: 'bg-emerald-500' },
   ];
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -246,13 +260,13 @@ export function DashboardKanban() {
       currentUser.id,
       currentUser.name,
       currentUser.avatar,
-      `moved "${task.title}" to ${newStatus.replace('-', ' ')}`,
+      `moved "${task.title}" from ${previousStatus.replace('-', ' ')} to ${newStatus.replace('-', ' ')}`,
       'task',
       task.title
     );
 
-    // Toast Notification with Undo option
-    toast.success(`Task moved to ${newStatus.replace('-', ' ')}`, {
+    // Toast Notification with details
+    toast.success(`Moved "${task.title}" from ${previousStatus.replace('-', ' ')} to ${newStatus.replace('-', ' ')}`, {
       action: {
         label: 'Undo',
         onClick: () => {
@@ -359,7 +373,9 @@ export function DashboardKanban() {
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start pt-2">
             {columns.map((col) => {
-              const colTasks = workspaceTasks.filter((t) => t.status === col.id);
+              const colTasks = workspaceTasks.filter(
+                (t) => t.status === col.id || (col.id === 'done' && t.status === 'completed')
+              );
               return (
                 <KanbanColumn
                   key={col.id}
@@ -368,7 +384,7 @@ export function DashboardKanban() {
                   color={col.color}
                   tasks={colTasks}
                   onTaskClick={(id) => setSelectedTaskIdForModal(id)}
-                  onAddTask={() => setCreateTaskModalOpen(true)}
+                  onAddTask={() => setCreateTaskModalOpen(true, col.id)}
                   canCreateTask={permissions.canCreateTask}
                 />
               );

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useTaskStore } from '@/store/useTaskStore';
+import { useUIStore } from '@/store/useUIStore';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import {
   LayoutDashboard,

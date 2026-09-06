@@ -7,8 +7,10 @@ interface TaskStore {
   createTask: (taskData: Omit<Task, 'id' | 'commentsCount' | 'createdAt'>) => Task;
   updateTask: (id: string, updates: Partial<Task>) => void;
   updateTaskStatus: (id: string, status: TaskStatus) => void;
+  duplicateTask: (id: string) => Task | null;
   toggleSubtask: (taskId: string, subtaskId: string) => void;
   addSubtask: (taskId: string, title: string) => void;
+  deleteSubtask: (taskId: string, subtaskId: string) => void;
   deleteTask: (id: string) => void;
   bulkDeleteTasks: (ids: string[]) => void;
   bulkUpdateStatus: (ids: string[], status: TaskStatus) => void;
@@ -35,6 +37,12 @@ export const useTaskStore = create<TaskStore>((set) => ({
     set({ tasks: updated });
   },
 
+  duplicateTask: (id) => {
+    const dup = taskService.duplicateTask(id);
+    set({ tasks: taskService.getTasks() });
+    return dup;
+  },
+
   toggleSubtask: (taskId, subtaskId) => {
     const updated = taskService.toggleSubtask(taskId, subtaskId);
     set({ tasks: updated });
@@ -42,6 +50,11 @@ export const useTaskStore = create<TaskStore>((set) => ({
 
   addSubtask: (taskId, title) => {
     const updated = taskService.addSubtask(taskId, title);
+    set({ tasks: updated });
+  },
+
+  deleteSubtask: (taskId, subtaskId) => {
+    const updated = taskService.deleteSubtask(taskId, subtaskId);
     set({ tasks: updated });
   },
 

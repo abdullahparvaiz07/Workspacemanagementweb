@@ -63,6 +63,39 @@ class TaskService {
     );
   }
 
+  public duplicateTask(id: string): Task | null {
+    const tasks = storageService.getTable('tasks');
+    const existing = tasks.find((t) => t.id === id);
+    if (!existing) return null;
+
+    const duplicated: Task = {
+      ...existing,
+      id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      title: `${existing.title} (Copy)`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      subtasks: existing.subtasks.map((st) => ({
+        ...st,
+        id: `st-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+        completed: false,
+      })),
+    };
+
+    storageService.updateTable('tasks', (list) => [duplicated, ...list]);
+    return duplicated;
+  }
+
+  public deleteSubtask(taskId: string, subtaskId: string): Task[] {
+    return storageService.updateTable('tasks', (list) =>
+      list.map((t) => {
+        if (t.id === taskId) {
+          return { ...t, subtasks: t.subtasks.filter((st) => st.id !== subtaskId) };
+        }
+        return t;
+      })
+    );
+  }
+
   public deleteTask(id: string): Task[] {
     return storageService.updateTable('tasks', (list) =>
       list.filter((t) => t.id !== id)

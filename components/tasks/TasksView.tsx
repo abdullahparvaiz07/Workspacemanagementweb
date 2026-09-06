@@ -10,6 +10,7 @@ import { taskService } from '@/services/task.service';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { DashboardKanban } from '@/components/dashboard/DashboardKanban';
+import { CalendarView } from '@/components/calendar/CalendarView';
 import {
   Plus,
   MoreHorizontal,
@@ -313,6 +314,16 @@ export function TasksView() {
         {/* View Mode Switcher */}
         <div className="flex items-center gap-1 bg-white border border-zinc-200/90 p-1 rounded-2xl shadow-2xs self-start lg:self-auto">
           <button
+            onClick={() => setActiveViewMode('board')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeViewMode === 'board' ? 'bg-amber-600/10 text-amber-900 shadow-2xs' : 'text-zinc-500 hover:text-zinc-900'
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>Board</span>
+          </button>
+
+          <button
             onClick={() => setActiveViewMode('list')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeViewMode === 'list' ? 'bg-amber-600/10 text-amber-900 shadow-2xs' : 'text-zinc-500 hover:text-zinc-900'
@@ -323,13 +334,13 @@ export function TasksView() {
           </button>
 
           <button
-            onClick={() => setActiveViewMode('board')}
+            onClick={() => setActiveViewMode('calendar')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeViewMode === 'board' ? 'bg-amber-600/10 text-amber-900 shadow-2xs' : 'text-zinc-500 hover:text-zinc-900'
+              activeViewMode === 'calendar' ? 'bg-amber-600/10 text-amber-900 shadow-2xs' : 'text-zinc-500 hover:text-zinc-900'
             }`}
           >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Board</span>
+            <CalendarIcon className="w-3.5 h-3.5" />
+            <span>Calendar</span>
           </button>
         </div>
       </div>
@@ -337,6 +348,8 @@ export function TasksView() {
       {/* Content */}
       {activeViewMode === 'board' ? (
         <DashboardKanban />
+      ) : activeViewMode === 'calendar' ? (
+        <CalendarView />
       ) : (
         /* LIST VIEW TABLE */
         <div className="bg-white/90 backdrop-blur-md rounded-3xl border border-zinc-200/90 shadow-xs overflow-hidden">

@@ -40,7 +40,7 @@ export interface Project {
   createdAt: string;
 }
 
-export type TaskStatus = 'todo' | 'in-progress' | 'review' | 'completed';
+export type TaskStatus = 'todo' | 'in-progress' | 'review' | 'done' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Subtask {
@@ -58,13 +58,16 @@ export interface Task {
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
-  category: string;
+  category?: string;
   dueDate: string;
   assigneeId?: string;
+  labels?: string[];
   tags: string[];
   subtasks: Subtask[];
   commentsCount: number;
+  comments?: Comment[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Comment {

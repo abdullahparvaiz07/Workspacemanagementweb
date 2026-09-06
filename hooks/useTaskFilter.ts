@@ -45,7 +45,7 @@ export function useTaskFilter(options: FilterOptions = {}) {
         const query = options.searchQuery.toLowerCase();
         const matchTitle = t.title.toLowerCase().includes(query);
         const matchDesc = t.description.toLowerCase().includes(query);
-        const matchCategory = t.category.toLowerCase().includes(query);
+        const matchCategory = t.category ? t.category.toLowerCase().includes(query) : false;
         if (!matchTitle && !matchDesc && !matchCategory) return false;
       }
 

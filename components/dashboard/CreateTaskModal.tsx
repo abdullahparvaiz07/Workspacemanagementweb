@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUIStore } from '@/store/useUIStore';
 import { useWorkspaceStore } from '@/store/useWorkspaceStore';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -9,12 +9,13 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useActivityStore } from '@/store/useActivityStore';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Task } from '@/types';
+import { Task, TaskStatus } from '@/types';
 import { toast } from 'sonner';
 import { X, Plus, Trash2 } from 'lucide-react';
 
 export default function CreateTaskModal() {
   const isOpen = useUIStore((state) => state.isCreateTaskModalOpen);
+  const createTaskDefaultStatus = useUIStore((state) => state.createTaskDefaultStatus);
   const setCreateTaskModalOpen = useUIStore((state) => state.setCreateTaskModalOpen);
 
   const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
@@ -32,6 +33,7 @@ export default function CreateTaskModal() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [projectId, setProjectId] = useState(selectedProjectFilter || projects[0]?.id || 'p-1');
+  const [status, setStatus] = useState<TaskStatus>(createTaskDefaultStatus || 'todo');
   const [priority, setPriority] = useState<Task['priority']>('medium');
   const [category, setCategory] = useState('Design');
   const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
@@ -40,6 +42,12 @@ export default function CreateTaskModal() {
   const [tags, setTags] = useState<string[]>(['UI/UX']);
   const [subtaskInput, setSubtaskInput] = useState('');
   const [subtasks, setSubtasks] = useState<{ id: string; taskId: string; title: string; completed: boolean }[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setStatus(createTaskDefaultStatus || 'todo');
+    }
+  }, [isOpen, createTaskDefaultStatus]);
 
   if (!isOpen) return null;
 
@@ -90,12 +98,13 @@ export default function CreateTaskModal() {
       projectId,
       title: title.trim(),
       description: description.trim() || 'No description provided.',
-      status: 'todo',
+      status,
       priority,
       category,
       dueDate,
       assigneeId,
       tags: tags.length > 0 ? tags : ['General'],
+      labels: tags,
       subtasks,
     });
 
@@ -189,6 +198,22 @@ export default function CreateTaskModal() {
                       {p.name}
                     </option>
                   ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">
+                Status
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as TaskStatus)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-stone-800 bg-white capitalize"
+              >
+                <option value="todo">Todo</option>
+                <option value="in-progress">In Progress</option>
+                <option value="review">Review</option>
+                <option value="done">Done</option>
               </select>
             </div>
 
