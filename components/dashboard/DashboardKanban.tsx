@@ -55,6 +55,7 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
   const project = projects.find((p) => p.id === task.projectId);
   const assignee = members.find((m) => m.id === task.assigneeId) || (task as any).assignee;
   const completedSubtasks = task.subtasks?.filter((st) => st.completed).length || 0;
+  const badgeLabel = task.category || project?.name || 'General';
 
   return (
     <div
@@ -67,12 +68,12 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
         task.status === 'completed' || task.status === 'done' ? 'opacity-85' : ''
       }`}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-[9px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded-md truncate max-w-[120px]">
-          {project?.name || task.category || 'General'}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[9.5px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded-md truncate max-w-[130px] shrink-0" title={badgeLabel}>
+          {badgeLabel}
         </span>
         <span
-          className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+          className={`text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0 ${
             priorityBadges[task.priority]
           }`}
         >
@@ -81,28 +82,28 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
       </div>
 
       <h4
-        className={`text-xs font-bold text-zinc-900 leading-snug group-hover:text-amber-900 transition-colors ${
+        className={`text-xs font-bold text-zinc-900 leading-snug group-hover:text-amber-900 transition-colors break-words ${
           task.status === 'completed' || task.status === 'done' ? 'line-through text-zinc-400' : ''
         }`}
       >
         {task.title}
       </h4>
 
-      <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-[10px] text-zinc-400 font-medium">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="flex items-center gap-1">
-            <CalendarIcon className="w-3 h-3 text-zinc-400" />
+      <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-[10px] text-zinc-500 font-medium gap-2">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <span className="flex items-center gap-1 whitespace-nowrap font-medium text-zinc-500">
+            <CalendarIcon className="w-3 h-3 text-zinc-400 shrink-0" />
             {task.dueDate}
           </span>
           {task.subtasks && task.subtasks.length > 0 && (
-            <span className="flex items-center gap-1">
-              <CheckSquare className="w-3 h-3 text-zinc-400" />
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <CheckSquare className="w-3 h-3 text-zinc-400 shrink-0" />
               {completedSubtasks}/{task.subtasks.length}
             </span>
           )}
           {task.commentsCount > 0 && (
-            <span className="flex items-center gap-1">
-              <MessageSquare className="w-3 h-3 text-zinc-400" />
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <MessageSquare className="w-3 h-3 text-zinc-400 shrink-0" />
               {task.commentsCount}
             </span>
           )}
@@ -113,7 +114,7 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
             src={assignee.avatar}
             alt={assignee.name}
             title={assignee.name}
-            className="w-5 h-5 rounded-full object-cover ring-1 ring-white"
+            className="w-5 h-5 rounded-full object-cover ring-1 ring-white shrink-0"
           />
         )}
       </div>
@@ -143,17 +144,17 @@ function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`bg-[#FAF7F2] rounded-2xl p-3.5 border transition-colors space-y-3 min-h-[440px] flex flex-col justify-between ${
+      className={`bg-[#FAF7F2] rounded-2xl p-3.5 border transition-colors space-y-3 min-h-[440px] flex flex-col justify-between min-w-[240px] flex-1 ${
         isOver ? 'border-amber-400 bg-amber-50/30' : 'border-zinc-200/80'
       }`}
     >
       <div className="space-y-3">
-        <div className="flex items-center justify-between font-bold text-xs text-zinc-800 px-1">
-          <div className="flex items-center gap-2">
-            <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
-            <span>{title}</span>
+        <div className="flex items-center justify-between font-bold text-xs text-zinc-800 px-1 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${color}`} />
+            <span className="whitespace-nowrap font-bold text-xs text-zinc-900">{title}</span>
           </div>
-          <span className="text-[11px] font-semibold text-zinc-500 bg-zinc-200/80 px-2 py-0.5 rounded-full">
+          <span className="text-[11px] font-semibold text-zinc-500 bg-zinc-200/80 px-2 py-0.5 rounded-full shrink-0">
             {tasks.length}
           </span>
         </div>
@@ -368,10 +369,10 @@ export function DashboardKanban() {
         </div>
       </div>
 
-      {/* Board View vs List View */}
       {activeView === 'board' ? (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start pt-2">
+          <div className="overflow-x-auto pb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start pt-2 min-w-[900px] xl:min-w-0">
             {columns.map((col) => {
               const colTasks = workspaceTasks.filter(
                 (t) => t.status === col.id || (col.id === 'done' && t.status === 'completed')
@@ -390,6 +391,7 @@ export function DashboardKanban() {
               );
             })}
           </div>
+        </div>
 
           <DragOverlay>
             {activeDragTask ? (
