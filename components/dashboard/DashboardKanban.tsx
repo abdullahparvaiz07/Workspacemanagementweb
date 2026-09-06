@@ -64,16 +64,17 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
       {...listeners}
       {...attributes}
       onClick={onClick}
-      className={`bg-white p-3.5 rounded-xl border border-zinc-200/80 shadow-2xs hover:shadow-md transition-all space-y-2.5 cursor-grab active:cursor-grabbing group ${
-        task.status === 'completed' || task.status === 'done' ? 'opacity-85' : ''
+      className={`bg-white p-3.5 rounded-xl border border-zinc-200/80 shadow-2xs hover:shadow-md transition-all space-y-3 cursor-grab active:cursor-grabbing group ${
+        task.status === 'completed' || task.status === 'done' ? 'opacity-70' : ''
       }`}
     >
+      {/* TOP */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[9.5px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded-md truncate max-w-[130px] shrink-0" title={badgeLabel}>
+        <span className="text-[10px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded-md truncate max-w-[150px] shrink-0" title={badgeLabel}>
           {badgeLabel}
         </span>
         <span
-          className={`text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0 ${
+          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0 ${
             priorityBadges[task.priority]
           }`}
         >
@@ -81,42 +82,48 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
         </span>
       </div>
 
+      {/* CENTER */}
       <h4
-        className={`text-xs font-bold text-zinc-900 leading-snug group-hover:text-amber-900 transition-colors break-words ${
+        className={`text-sm font-bold text-zinc-900 leading-snug group-hover:text-amber-900 transition-colors break-words ${
           task.status === 'completed' || task.status === 'done' ? 'line-through text-zinc-400' : ''
         }`}
       >
         {task.title}
       </h4>
 
-      <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-[10px] text-zinc-500 font-medium gap-2">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="flex items-center gap-1 whitespace-nowrap font-medium text-zinc-500">
-            <CalendarIcon className="w-3 h-3 text-zinc-400 shrink-0" />
-            {task.dueDate}
-          </span>
+      {/* BOTTOM */}
+      <div className="flex items-center justify-between pt-3 border-t border-zinc-100 text-zinc-500 font-medium">
+        <div className="flex items-center gap-1">
+          {assignee ? (
+            <img
+              src={assignee.avatar}
+              alt={assignee.name}
+              title={assignee.name}
+              className="w-6 h-6 rounded-full object-cover ring-2 ring-white shrink-0"
+            />
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-zinc-100 border border-dashed border-zinc-300 shrink-0" />
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 text-[11px]">
           {task.subtasks && task.subtasks.length > 0 && (
-            <span className="flex items-center gap-1 whitespace-nowrap">
-              <CheckSquare className="w-3 h-3 text-zinc-400 shrink-0" />
+            <span className="flex items-center gap-1">
+              <CheckSquare className="w-3.5 h-3.5 text-zinc-400" />
               {completedSubtasks}/{task.subtasks.length}
             </span>
           )}
           {task.commentsCount > 0 && (
-            <span className="flex items-center gap-1 whitespace-nowrap">
-              <MessageSquare className="w-3 h-3 text-zinc-400 shrink-0" />
+            <span className="flex items-center gap-1">
+              <MessageSquare className="w-3.5 h-3.5 text-zinc-400" />
               {task.commentsCount}
             </span>
           )}
+          <span className="flex items-center gap-1">
+            <CalendarIcon className="w-3.5 h-3.5 text-zinc-400" />
+            {task.dueDate}
+          </span>
         </div>
-
-        {assignee && (
-          <img
-            src={assignee.avatar}
-            alt={assignee.name}
-            title={assignee.name}
-            className="w-5 h-5 rounded-full object-cover ring-1 ring-white shrink-0"
-          />
-        )}
       </div>
     </div>
   );
@@ -144,30 +151,36 @@ function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`bg-[#FAF7F2] rounded-2xl p-3.5 border transition-colors space-y-3 min-h-[440px] flex flex-col justify-between min-w-[240px] flex-1 ${
+      className={`bg-[#FAF7F2] rounded-2xl p-3.5 border transition-colors flex flex-col min-w-[320px] max-w-[360px] flex-shrink-0 min-h-[500px] ${
         isOver ? 'border-amber-400 bg-amber-50/30' : 'border-zinc-200/80'
       }`}
     >
-      <div className="space-y-3">
-        <div className="flex items-center justify-between font-bold text-xs text-zinc-800 px-1 gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${color}`} />
-            <span className="whitespace-nowrap font-bold text-xs text-zinc-900">{title}</span>
-          </div>
-          <span className="text-[11px] font-semibold text-zinc-500 bg-zinc-200/80 px-2 py-0.5 rounded-full shrink-0">
-            {tasks.length}
-          </span>
+      <div className="flex items-center justify-between font-bold text-xs text-zinc-800 px-1 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${color}`} />
+          <span className="whitespace-nowrap font-bold text-xs text-zinc-900">{title}</span>
         </div>
-
-        {tasks.map((t) => (
-          <DraggableTaskCard key={t.id} task={t} onClick={() => onTaskClick(t.id)} />
-        ))}
+        <span className="text-[11px] font-semibold text-zinc-500 bg-zinc-200/80 px-2 py-0.5 rounded-full shrink-0">
+          {tasks.length}
+        </span>
       </div>
+
+      {tasks.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center border-2 border-dashed border-zinc-200 rounded-xl m-2 mt-4">
+          <span className="text-zinc-400 font-medium text-xs">Drop tasks here</span>
+        </div>
+      ) : (
+        <div className="space-y-3 mt-4 flex-1">
+          {tasks.map((t) => (
+            <DraggableTaskCard key={t.id} task={t} onClick={() => onTaskClick(t.id)} />
+          ))}
+        </div>
+      )}
 
       {canCreateTask && (
         <button
           onClick={onAddTask}
-          className="w-full py-2 border border-dashed border-zinc-200 hover:border-zinc-400 rounded-xl text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors mt-2"
+          className="w-full py-2 border border-dashed border-zinc-200 hover:border-zinc-400 rounded-xl text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors mt-3 shrink-0"
         >
           + Add task
         </button>
@@ -371,8 +384,8 @@ export function DashboardKanban() {
 
       {activeView === 'board' ? (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="overflow-x-auto pb-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start pt-2 min-w-[900px] xl:min-w-0">
+          <div className="overflow-x-auto pb-4 custom-scrollbar">
+            <div className="flex gap-6 items-start pt-2 h-full min-h-[600px] w-max">
             {columns.map((col) => {
               const colTasks = workspaceTasks.filter(
                 (t) => t.status === col.id || (col.id === 'done' && t.status === 'completed')
@@ -395,8 +408,8 @@ export function DashboardKanban() {
 
           <DragOverlay>
             {activeDragTask ? (
-              <div className="bg-white p-3.5 rounded-xl border-2 border-amber-500 shadow-2xl space-y-2.5 opacity-90">
-                <h4 className="text-xs font-bold text-zinc-900">{activeDragTask.title}</h4>
+              <div className="bg-white p-3.5 rounded-xl border-2 border-amber-500 shadow-2xl space-y-2.5 opacity-90 w-[320px]">
+                <h4 className="text-sm font-bold text-zinc-900">{activeDragTask.title}</h4>
               </div>
             ) : null}
           </DragOverlay>
