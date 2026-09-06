@@ -1,11 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuthStore } from '@/store/useAuthStore';
-import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore';
 import { useUIStore } from '@/store/useUIStore';
-import { authService } from '@/services/auth.service';
-import { activityService } from '@/services/activity.service';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { UserRole } from '@/types';
@@ -22,11 +20,11 @@ import {
 } from 'lucide-react';
 
 export function MembersView() {
-  const members = useAuthStore((s) => s.members);
-  const removeMemberFromStore = useAuthStore((s) => s.removeMember);
-  const updateMemberRoleInStore = useAuthStore((s) => s.updateMemberRole);
+  const members = useWorkspaceStore((s) => s.members);
+  const removeMember = useWorkspaceStore((s) => s.removeMember);
+  const updateMemberRole = useWorkspaceStore((s) => s.updateMemberRole);
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
-  const currentUser = useAuthStore((s) => s.currentUser);
+  const currentUser = useAuthStore((s) => s.user);
   const setInviteMemberModalOpen = useUIStore((s) => s.setInviteMemberModalOpen);
 
   const permissions = usePermissions();
@@ -42,58 +40,49 @@ export function MembersView() {
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  const handleRoleChange = (memberId: string, memberName: string, newRole: UserRole) => {
+  const handleRoleChange = async (userId: string, memberName: string, newRole: UserRole) => {
     if (!permissions.canManageMembers) {
       toast.error('Your role does not allow changing member roles.');
       return;
     }
-    updateMemberRoleInStore(memberId, newRole);
+    if (!activeWorkspaceId) return;
 
-    activityService.logActivity({
-      workspaceId: activeWorkspaceId,
-      userId: currentUser.id,
-      userName: currentUser.name,
-      userAvatar: currentUser.avatar,
-      action: `changed role of ${memberName} to ${newRole}`,
-      entityType: 'member',
-      entityName: memberName,
-    });
-
-    toast.info(`${memberName}'s role updated to ${newRole}.`);
+    try {
+      await updateMemberRole(activeWorkspaceId, userId, newRole);
+      toast.info(`${memberName}'s role updated to ${newRole}.`);
+    } catch (error) {
+      toast.error('Failed to update role');
+    }
   };
 
-  const handleRemoveMember = (memberId: string, memberName: string) => {
+  const handleRemoveMember = async (userId: string, memberName: string) => {
     if (!permissions.canManageMembers) {
       toast.error('Your role does not allow removing members.');
       return;
     }
-    if (memberId === currentUser.id) {
+    if (userId === currentUser.id) {
       toast.error('You cannot remove yourself from the workspace.');
       return;
     }
+    if (!activeWorkspaceId) return;
+
     if (confirm(`Are you sure you want to remove ${memberName} from this workspace?`)) {
-      removeMemberFromStore(memberId);
-
-      activityService.logActivity({
-        workspaceId: activeWorkspaceId,
-        userId: currentUser.id,
-        userName: currentUser.name,
-        userAvatar: currentUser.avatar,
-        action: `removed member ${memberName}`,
-        entityType: 'member',
-        entityName: memberName,
-      });
-
-      toast.success(`${memberName} removed.`);
+      try {
+        await removeMember(activeWorkspaceId, userId);
+        toast.success(`${memberName} removed.`);
+      } catch (error) {
+        toast.error('Failed to remove member');
+      }
     }
   };
 
-  const filteredMembers = members.filter(
-    (m) =>
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.role.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredMembers = members.filter((m) => {
+    const name = m.profile?.full_name || m.profile?.email || 'Unknown User';
+    const email = m.profile?.email || '';
+    return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.role.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const stats = [
     { title: 'Total Members', value: members.length, color: 'bg-blue-50 text-blue-600', icon: Users },
@@ -176,48 +165,53 @@ export function MembersView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 font-medium">
-              {filteredMembers.map((m) => (
-                <tr key={m.id} className="hover:bg-amber-50/30 transition-colors">
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                      <img src={m.avatar} alt={m.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-white" />
-                      <div>
-                        <span className="font-bold text-stone-900 block">{m.name}</span>
-                        {m.id === currentUser.id && (
-                          <span className="text-[10px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-semibold">
-                            You
-                          </span>
-                        )}
+              {filteredMembers.map((m) => {
+                const memberName = m.profile?.full_name || m.profile?.email || 'Unknown User';
+                const avatar = m.profile?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150';
+                
+                return (
+                  <tr key={m.user_id} className="hover:bg-amber-50/30 transition-colors">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <img src={avatar} alt={memberName} className="w-9 h-9 rounded-full object-cover ring-2 ring-white" />
+                        <div>
+                          <span className="font-bold text-stone-900 block">{memberName}</span>
+                          {m.user_id === currentUser.id && (
+                            <span className="text-[10px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-semibold">
+                              You
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6 text-stone-600 font-mono">{m.email}</td>
-                  <td className="py-4 px-6">
-                    <select
-                      value={m.role}
-                      onChange={(e) => handleRoleChange(m.id, m.name, e.target.value as UserRole)}
-                      disabled={!permissions.canManageMembers || m.role === 'owner'}
-                      className="px-3 py-1.5 rounded-xl border border-stone-200 bg-stone-50 text-xs font-semibold text-stone-800 capitalize focus:outline-none disabled:opacity-75"
-                    >
-                      <option value="owner">Owner</option>
-                      <option value="admin">Admin</option>
-                      <option value="member">Member</option>
-                      <option value="viewer">Viewer</option>
-                    </select>
-                  </td>
-                  <td className="py-4 px-6 text-right">
-                    {permissions.canManageMembers && m.id !== currentUser.id && m.role !== 'owner' && (
-                      <button
-                        onClick={() => handleRemoveMember(m.id, m.name)}
-                        className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                        title="Remove Member"
+                    </td>
+                    <td className="py-4 px-6 text-stone-600 font-mono">{m.profile?.email}</td>
+                    <td className="py-4 px-6">
+                      <select
+                        value={m.role}
+                        onChange={(e) => handleRoleChange(m.user_id, memberName, e.target.value as UserRole)}
+                        disabled={!permissions.canManageMembers || m.role === 'owner'}
+                        className="px-3 py-1.5 rounded-xl border border-stone-200 bg-stone-50 text-xs font-semibold text-stone-800 capitalize focus:outline-none disabled:opacity-75"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                        <option value="owner">Owner</option>
+                        <option value="admin">Admin</option>
+                        <option value="member">Member</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      {permissions.canManageMembers && m.user_id !== currentUser.id && m.role !== 'owner' && (
+                        <button
+                          onClick={() => handleRemoveMember(m.user_id, memberName)}
+                          className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          title="Remove Member"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

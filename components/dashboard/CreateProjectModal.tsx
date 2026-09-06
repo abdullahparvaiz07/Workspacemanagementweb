@@ -2,22 +2,26 @@
 
 import React, { useState } from 'react';
 import { useUIStore } from '@/store/useUIStore';
-import { useWorkspaceStore } from '@/store/useWorkspaceStore';
-import { useProjectStore } from '@/store/useProjectStore';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore';
+import { useProjectStore } from '@/features/projects/store/useProjectStore';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { useActivityStore } from '@/store/useActivityStore';
+import { useTaskStore } from '@/store/useTaskStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { X, FolderPlus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function CreateProjectModal() {
   const isOpen = useUIStore((state) => state.isCreateProjectModalOpen);
   const setCreateProjectModalOpen = useUIStore((state) => state.setCreateProjectModalOpen);
 
   const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
-  const currentUser = useAuthStore((state) => state.currentUser);
+  const currentUser = useAuthStore((state) => state.user);
   const createProject = useProjectStore((state) => state.createProject);
   const logActivity = useActivityStore((state) => state.logActivity);
+  const createTask = useTaskStore((state) => state.createTask);
+  const router = useRouter();
 
   const permissions = usePermissions();
 
@@ -25,6 +29,8 @@ export default function CreateProjectModal() {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Product & Engineering');
   const [color, setColor] = useState('#D97706');
+  const [template, setTemplate] = useState('blank');
+  const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
@@ -37,7 +43,32 @@ export default function CreateProjectModal() {
     { label: 'Stone', value: '#57534E' },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const applyTemplateTasks = (projectId: string, templateType: string) => {
+    if (templateType === 'website') {
+      const tasks = [
+        { title: 'Design Homepage Mockups', description: 'Create Figma designs for the new homepage', priority: 'high' as const },
+        { title: 'Setup Next.js Project', description: 'Initialize the repo with Next.js and Tailwind', priority: 'high' as const },
+        { title: 'Write Copywriting', description: 'Draft the marketing copy for all pages', priority: 'medium' as const },
+        { title: 'QA & Testing', description: 'Test on mobile and desktop browsers', priority: 'medium' as const },
+      ];
+      tasks.forEach(t => {
+        createTask({
+          workspaceId: activeWorkspaceId as string,
+          projectId,
+          title: t.title,
+          description: t.description,
+          priority: t.priority,
+          status: 'todo',
+          assigneeId: currentUser?.id,
+          subtasks: [],
+          tags: [],
+          dueDate: '',
+        });
+      });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       toast.error('Project name is required.');
@@ -49,29 +80,46 @@ export default function CreateProjectModal() {
       return;
     }
 
-    createProject(activeWorkspaceId, name.trim(), description.trim(), category, color);
+    if (!activeWorkspaceId || !currentUser) return;
 
-    logActivity(
-      activeWorkspaceId,
-      currentUser.id,
-      currentUser.name,
-      currentUser.avatar,
-      'created project',
-      'project',
-      name.trim()
-    );
+    setLoading(true);
+    try {
+      // Create project in Supabase (we pack category into description or rely on icon later, for now we just pass it to the color or drop it since our schema only has name/description/color/icon). We will append category to description for now.
+      const fullDesc = description ? `${description}\n\nCategory: ${category}` : `Category: ${category}`;
+      const newWs = await createProject(activeWorkspaceId, name.trim(), fullDesc, color, currentUser.id);
 
-    toast.success(`Project "${name.trim()}" created successfully!`);
-    setCreateProjectModalOpen(false);
+      // Generate template tasks if selected
+      applyTemplateTasks(newWs.id, template);
 
-    setName('');
-    setDescription('');
+      logActivity(
+        activeWorkspaceId,
+        currentUser.id,
+        currentUser.email || 'User',
+        '', // avatar
+        'created project',
+        'project',
+        name.trim()
+      );
+
+      toast.success(`Project "${name.trim()}" created successfully!`);
+      setCreateProjectModalOpen(false);
+
+      setName('');
+      setDescription('');
+      
+      // Navigate to new project
+      router.push(`/projects/${newWs.id}`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create project');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-lg overflow-hidden animation-fade-in font-sans">
-        <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+      <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animation-fade-in font-sans">
+        <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50 flex-shrink-0">
           <div>
             <h3 className="font-serif text-xl font-bold text-stone-900">Create New Project</h3>
             <p className="text-xs text-stone-500">Group tasks into a dedicated workspace stream.</p>
@@ -84,7 +132,7 @@ export default function CreateProjectModal() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-sm">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-sm overflow-y-auto flex-1">
           <div>
             <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">
               Project Name *
@@ -97,6 +145,20 @@ export default function CreateProjectModal() {
               className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-stone-800"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">
+              Template
+            </label>
+            <select
+              value={template}
+              onChange={(e) => setTemplate(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-stone-800 bg-white"
+            >
+              <option value="blank">Blank Project</option>
+              <option value="website">Website Launch (4 tasks)</option>
+            </select>
           </div>
 
           <div>
@@ -157,9 +219,10 @@ export default function CreateProjectModal() {
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-stone-900 text-stone-50 font-medium text-xs hover:bg-stone-800 shadow-md transition-all flex items-center gap-1.5"
+              disabled={loading}
+              className="px-5 py-2 rounded-xl bg-stone-900 text-stone-50 font-medium text-xs hover:bg-stone-800 shadow-md transition-all flex items-center gap-1.5 disabled:opacity-70"
             >
-              <FolderPlus className="w-4 h-4" /> Create Project
+              {loading ? <span>Creating...</span> : <><FolderPlus className="w-4 h-4" /> Create Project</>}
             </button>
           </div>
         </form>

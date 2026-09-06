@@ -3,32 +3,39 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/useAuthStore';
-import { authService } from '@/services/auth.service';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { toast } from 'sonner';
-import { Mail, Lock, Eye, EyeOff, FolderKanban, CheckSquare, Users } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, FolderKanban, CheckSquare, Users, User } from 'lucide-react';
 import Image from 'next/image';
 
 export function LoginPage() {
   const router = useRouter();
-  const loginInStore = useAuthStore((s) => s.login);
+  const { login, signup } = useAuthStore();
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('abdullah@acme.studio');
-  const [password, setPassword] = useState('password123');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    setTimeout(() => {
-      const user = authService.login(email);
-      loginInStore(email);
-      toast.success(`Welcome back, ${user.name}!`);
-      setLoading(false);
+    try {
+      if (isSignUp) {
+        await signup(email, password, fullName);
+        toast.success(`Account created successfully!`);
+      } else {
+        await login(email, password);
+        toast.success(`Welcome back!`);
+      }
       router.push('/dashboard');
-    }, 400);
+    } catch (error: any) {
+      toast.error(error.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -119,6 +126,7 @@ export function LoginPage() {
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
           </span>
           <button
+            type="button"
             onClick={() => setIsSignUp(!isSignUp)}
             className="bg-white hover:bg-zinc-50 border border-zinc-200/90 text-zinc-800 font-bold px-3.5 py-1.5 rounded-full text-xs shadow-2xs transition-all cursor-pointer"
           >
@@ -139,6 +147,23 @@ export function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-3.5">
+            {isSignUp && (
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-zinc-900">Full Name</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="John Doe"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-white border border-zinc-200/90 rounded-xl text-xs sm:text-sm font-medium text-zinc-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all shadow-2xs"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1">
               <label className="block text-xs font-bold text-zinc-900">Email address</label>
               <div className="relative">
@@ -176,12 +201,48 @@ export function LoginPage() {
               </div>
             </div>
 
+            {/* S.M.I.T Hackathon Evaluator Credentials Card */}
+            <div className="bg-amber-50/90 border border-amber-200/90 rounded-2xl p-3.5 space-y-2.5 shadow-2xs">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-900 text-[10px] font-extrabold uppercase tracking-wider">
+                  Use for S.M.I.T only
+                </span>
+                <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Verified Evaluator Logins</span>
+              </div>
+
+              <div className="space-y-2">
+                {/* Primary Account: SMIT Evaluator (Guaranteed Working) */}
+                <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border-2 border-amber-400 text-[11px] shadow-2xs">
+                  <div className="min-w-0 pr-2">
+                    <div className="font-extrabold text-amber-950 flex items-center gap-1.5 truncate">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 animate-pulse" />
+                      smit.evaluator@workroom.space
+                    </div>
+                    <div className="text-[10px] font-mono text-zinc-600 truncate font-semibold">Testing@workspace321</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('smit.evaluator@workroom.space');
+                      setPassword('Testing@workspace321');
+                      setIsSignUp(false);
+                      toast.success('Primary S.M.I.T evaluator filled! Ready to sign in.');
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] transition-colors flex-shrink-0 cursor-pointer shadow-2xs"
+                  >
+                    Fill & Use
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-zinc-950 hover:bg-zinc-800 text-white font-bold py-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer disabled:opacity-70 mt-1"
             >
-              <span>{loading ? 'Signing in...' : isSignUp ? 'Create account →' : 'Sign in →'}</span>
+              <span>{loading ? (isSignUp ? 'Creating account...' : 'Signing in...') : isSignUp ? 'Create account →' : 'Sign in →'}</span>
             </button>
           </form>
         </div>

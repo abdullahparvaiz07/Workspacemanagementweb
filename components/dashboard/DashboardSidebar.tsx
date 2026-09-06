@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useUIStore } from '@/store/useUIStore';
 import { useNotificationStore } from '@/store/useNotificationStore';
@@ -19,6 +19,8 @@ import {
   ChevronDown,
   CheckCircle,
   Plus,
+  X,
+  BarChart3,
 } from 'lucide-react';
 
 interface DashboardSidebarProps {
@@ -30,6 +32,9 @@ export function DashboardSidebar({ activeTab: propsActiveTab, onTabChange }: Das
   const storeActiveTab = useWorkspaceStore((s) => s.activeTab);
   const setActiveTabInStore = useWorkspaceStore((s) => s.setActiveTab);
   const switchWorkspaceInStore = useWorkspaceStore((s) => s.switchWorkspace);
+  
+  const isMobileSidebarOpen = useUIStore((s) => s.isMobileSidebarOpen);
+  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
 
   const activeTab = propsActiveTab || storeActiveTab || 'overview';
 
@@ -53,6 +58,7 @@ export function DashboardSidebar({ activeTab: propsActiveTab, onTabChange }: Das
     { name: 'Projects', key: 'projects', icon: FolderKanban },
     { name: 'Tasks', key: 'tasks', icon: CheckSquare, badge: openTasksCount > 0 ? openTasksCount : null },
     { name: 'Calendar', key: 'calendar', icon: Calendar },
+    { name: 'Analytics', key: 'analytics', icon: BarChart3 },
     { name: 'Activity', key: 'activity', icon: Activity },
     { name: 'Members', key: 'members', icon: Users },
   ];
@@ -68,16 +74,38 @@ export function DashboardSidebar({ activeTab: propsActiveTab, onTabChange }: Das
     if (onTabChange) {
       onTabChange(key);
     }
+    setMobileSidebarOpen(false); // Close on mobile navigation
   };
 
   return (
-    <aside className="w-64 bg-[#FAF7F2] border-r border-zinc-200/80 p-5 flex flex-col justify-between h-screen sticky top-0 overflow-y-auto select-none flex-shrink-0">
+    <>
+      {/* Mobile Overlay */}
+      {isMobileSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Content */}
+      <aside className={`
+        fixed lg:sticky top-0 left-0 z-50 h-screen overflow-y-auto select-none flex-shrink-0
+        w-64 bg-[#FAF7F2] dark:bg-zinc-900 border-r border-zinc-200/80 dark:border-zinc-800
+        p-5 flex flex-col justify-between transition-transform duration-300 ease-in-out
+        ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
       <div className="space-y-6">
         {/* Brand Logo Header */}
-        <div className="px-2 pt-1">
-          <Link href="/" className="font-serif font-extrabold text-2xl tracking-tight text-zinc-950 block">
+        <div className="px-2 pt-1 flex items-center justify-between">
+          <Link href="/" className="font-serif font-extrabold text-2xl tracking-tight text-zinc-950 dark:text-white block">
             WORKROOM.
           </Link>
+          <button 
+            className="lg:hidden p-1 text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+            onClick={() => setMobileSidebarOpen(false)}
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Workspace Switcher Card */}
@@ -212,17 +240,18 @@ export function DashboardSidebar({ activeTab: propsActiveTab, onTabChange }: Das
 
       {/* Sidebar Footer Connection Status */}
       <div className="pt-4">
-        <div className="pt-3 border-t border-zinc-200/80 flex items-center justify-between text-[11px] font-medium text-zinc-500 px-1">
+        <div className="pt-3 border-t border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between text-[11px] font-medium text-zinc-500 dark:text-zinc-400 px-1">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span>Online</span>
           </div>
-          <div className="flex items-center gap-1 text-zinc-400">
+          <div className="flex items-center gap-1 text-zinc-400 dark:text-zinc-500">
             <CheckCircle className="w-3 h-3 text-emerald-600" />
             <span>LocalStorage</span>
           </div>
         </div>
       </div>
     </aside>
+    </>
   );
 }

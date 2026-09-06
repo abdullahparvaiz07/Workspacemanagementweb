@@ -51,10 +51,10 @@ export default function Home() {
       <WorkInMotionSection />
 
       {/* Below-the-fold Feature Preview Section */}
-      <section id="features" className="w-full bg-white/60 border-t border-zinc-200/80 py-20 px-6 lg:px-12">
+      <section id="features" className="w-full bg-white/60 border-t border-zinc-200/80 py-20 px-6 lg:px-12 select-none">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="font-handwriting text-3xl text-zinc-800 font-medium">
+            <span className="font-handwriting text-3xl text-amber-900 font-medium">
               Everything in one workspace
             </span>
             <h2 className="font-serif-title text-4xl sm:text-5xl text-zinc-950 mt-2 font-normal">
@@ -66,31 +66,31 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-2xl border border-zinc-200/80 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center mb-6">
+            <div className="bg-white p-8 rounded-2xl border border-zinc-200/80 shadow-xs hover:shadow-xl hover:border-amber-300 transition-all duration-300 transform hover:-translate-y-2 group cursor-pointer">
+              <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center mb-6 transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                 <Layers className="w-6 h-6" />
               </div>
-              <h3 className="font-serif-title text-2xl text-zinc-900 font-normal mb-2">Unified Workspaces</h3>
+              <h3 className="font-serif-title text-2xl text-zinc-900 font-normal mb-2 group-hover:text-amber-950 transition-colors">Unified Workspaces</h3>
               <p className="text-zinc-600 text-sm leading-relaxed">
                 Organize projects, docs, tasks, and members into dedicated workspace boards without context switching.
               </p>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-zinc-200/80 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-900 flex items-center justify-center mb-6">
+            <div className="bg-white p-8 rounded-2xl border border-zinc-200/80 shadow-xs hover:shadow-xl hover:border-blue-300 transition-all duration-300 transform hover:-translate-y-2 group cursor-pointer">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-900 flex items-center justify-center mb-6 transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                 <Zap className="w-6 h-6" />
               </div>
-              <h3 className="font-serif-title text-2xl text-zinc-900 font-normal mb-2">Real-time Sync</h3>
+              <h3 className="font-serif-title text-2xl text-zinc-900 font-normal mb-2 group-hover:text-blue-950 transition-colors">Real-time Sync</h3>
               <p className="text-zinc-600 text-sm leading-relaxed">
                 Instant comments, mentions, and task status updates keep everyone aligned in real time.
               </p>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-zinc-200/80 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-900 flex items-center justify-center mb-6">
+            <div className="bg-white p-8 rounded-2xl border border-zinc-200/80 shadow-xs hover:shadow-xl hover:border-emerald-300 transition-all duration-300 transform hover:-translate-y-2 group cursor-pointer">
+              <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-900 flex items-center justify-center mb-6 transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="font-serif-title text-2xl text-zinc-900 font-normal mb-2">Enterprise Security</h3>
+              <h3 className="font-serif-title text-2xl text-zinc-900 font-normal mb-2 group-hover:text-emerald-950 transition-colors">Enterprise Security</h3>
               <p className="text-zinc-600 text-sm leading-relaxed">
                 Role-based access controls, automated data backups, and SOC-2 compliance for complete peace of mind.
               </p>

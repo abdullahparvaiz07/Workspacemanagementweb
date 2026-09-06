@@ -1,58 +1,74 @@
 'use client';
 
-import React from 'react';
-import { useProjectStore } from '@/store/useProjectStore';
+import React, { useEffect } from 'react';
+import { useProjectStore } from '@/features/projects/store/useProjectStore';
 import { useTaskStore } from '@/store/useTaskStore';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
-import { useWorkspaceStore } from '@/store/useWorkspaceStore';
-import { projectService } from '@/services/project.service';
-import { activityService } from '@/services/activity.service';
+import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore';
+import { useActivityStore } from '@/store/useActivityStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { Star, MoreHorizontal, Calendar, Code, Trash2, Plus, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export function ProjectsGrid() {
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
   const setActiveTab = useWorkspaceStore((s) => s.setActiveTab);
   const setSelectedProjectFilter = useWorkspaceStore((s) => s.setSelectedProjectFilter);
+  
   const projects = useProjectStore((s) => s.projects);
-  const deleteProjectFromStore = useProjectStore((s) => s.deleteProject);
-  const toggleStarProjectInStore = useProjectStore((s) => s.toggleStarProject);
+  const loadProjects = useProjectStore((s) => s.loadProjects);
+  const deleteProject = useProjectStore((s) => s.deleteProject);
+  
   const tasks = useTaskStore((s) => s.tasks);
-  const currentUser = useAuthStore((s) => s.currentUser);
+  const currentUser = useAuthStore((s) => s.user);
   const setCreateProjectModalOpen = useUIStore((s) => s.setCreateProjectModalOpen);
+  const logActivity = useActivityStore((state) => state.logActivity);
 
   const permissions = usePermissions();
+  const router = useRouter();
 
-  const workspaceProjects = projects.filter((p) => p.workspaceId === activeWorkspaceId);
+  useEffect(() => {
+    if (activeWorkspaceId) {
+      loadProjects(activeWorkspaceId);
+    }
+  }, [activeWorkspaceId, loadProjects]);
 
   const handleSelectProject = (projectId: string) => {
     setSelectedProjectFilter(projectId);
     setActiveTab('tasks');
   };
 
-  const handleDelete = (e: React.MouseEvent, pId: string, pName: string) => {
+  const handleViewProjectDetails = (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
+    router.push(`/projects/${projectId}`);
+  };
+
+  const handleDelete = async (e: React.MouseEvent, pId: string, pName: string) => {
     e.stopPropagation();
     if (!permissions.canEditProject) {
       toast.error('Your role does not allow deleting projects.');
       return;
     }
     if (confirm(`Are you sure you want to delete project "${pName}"?`)) {
-      projectService.deleteProject(pId);
-      deleteProjectFromStore(pId);
-      if (currentUser) {
-        activityService.logActivity({
-          workspaceId: activeWorkspaceId,
-          userId: currentUser.id,
-          userName: currentUser.name,
-          userAvatar: currentUser.avatar,
-          action: `deleted project "${pName}"`,
-          entityType: 'project',
-          entityName: pName,
-        });
+      try {
+        await deleteProject(pId);
+        if (currentUser && activeWorkspaceId) {
+          logActivity(
+            activeWorkspaceId,
+            currentUser.id,
+            currentUser.email || 'User',
+            '', // avatar
+            'deleted project',
+            'project',
+            pName
+          );
+        }
+        toast.success('Project deleted successfully.');
+      } catch (error) {
+        toast.error('Failed to delete project');
       }
-      toast.success('Project deleted successfully.');
     }
   };
 
@@ -60,7 +76,7 @@ export function ProjectsGrid() {
     <div className="space-y-6 select-none">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-serif text-2xl font-bold text-stone-900">Projects ({workspaceProjects.length})</h2>
+          <h2 className="font-serif text-2xl font-bold text-stone-900">Projects ({projects.length})</h2>
           <p className="text-xs text-stone-500">Manage streams and monitor overall completion progress.</p>
         </div>
         {permissions.canCreateProject && (
@@ -74,10 +90,15 @@ export function ProjectsGrid() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {workspaceProjects.map((proj) => {
+        {projects.map((proj) => {
           const projectTasks = tasks.filter((t) => t.projectId === proj.id);
-          const completedTasks = projectTasks.filter((t) => t.status === 'completed').length;
+          const completedTasks = projectTasks.filter((t) => t.status === 'completed' || t.status === 'done').length;
           const progress = projectTasks.length > 0 ? Math.round((completedTasks / projectTasks.length) * 100) : 0;
+          
+          // Extract category from description if we injected it
+          const categoryMatch = proj.description?.match(/Category: (.+)$/);
+          const category = categoryMatch ? categoryMatch[1] : 'Project';
+          const cleanDescription = proj.description ? proj.description.replace(/\n\nCategory: .+$/, '') : '';
 
           return (
             <div
@@ -97,30 +118,19 @@ export function ProjectsGrid() {
                       <Code className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-base text-zinc-950 group-hover:text-amber-700 transition-colors leading-tight">
+                      <h3 
+                        onClick={(e) => handleViewProjectDetails(e, proj.id)}
+                        className="font-bold text-base text-zinc-950 hover:underline group-hover:text-amber-700 transition-colors leading-tight"
+                      >
                         {proj.name}
                       </h3>
                       <span className="text-[11px] text-zinc-400 font-medium block mt-0.5">
-                        {proj.category}
+                        {category}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        projectService.toggleStarProject(proj.id);
-                        toggleStarProjectInStore(proj.id);
-                      }}
-                      className="text-zinc-300 hover:text-amber-400 transition-colors p-1"
-                    >
-                      <Star
-                        className={`w-4 h-4 ${
-                          proj.starred ? 'fill-amber-400 text-amber-400' : ''
-                        }`}
-                      />
-                    </button>
                     {permissions.canEditProject && (
                       <button
                         onClick={(e) => handleDelete(e, proj.id, proj.name)}
@@ -134,7 +144,7 @@ export function ProjectsGrid() {
                 </div>
 
                 <p className="text-zinc-600 text-xs leading-relaxed font-normal mb-5 line-clamp-2">
-                  {proj.description}
+                  {cleanDescription || 'No description provided.'}
                 </p>
               </div>
 
@@ -155,8 +165,11 @@ export function ProjectsGrid() {
                     <span className="font-semibold text-zinc-800">{projectTasks.length}</span> Tasks ({completedTasks} done)
                   </div>
 
-                  <div className="flex items-center gap-1 text-amber-700 font-semibold group-hover:translate-x-0.5 transition-transform">
-                    <span>View Tasks</span>
+                  <div 
+                    onClick={(e) => handleViewProjectDetails(e, proj.id)}
+                    className="flex items-center gap-1 text-amber-700 hover:underline font-semibold group-hover:translate-x-0.5 transition-transform"
+                  >
+                    <span>View Project</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </div>
                 </div>

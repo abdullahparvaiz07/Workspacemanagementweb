@@ -8,6 +8,7 @@ export function SolutionSection() {
     {
       title: 'Projects',
       description: 'Plan and organize your work',
+      bgGlow: 'hover:border-amber-300',
       icon: (
         <svg className="w-14 h-14" viewBox="0 0 60 60" fill="none">
           {/* Yellow Blob backdrop */}
@@ -29,6 +30,7 @@ export function SolutionSection() {
     {
       title: 'Tasks',
       description: 'Move from idea to done',
+      bgGlow: 'hover:border-blue-300',
       icon: (
         <svg className="w-14 h-14" viewBox="0 0 60 60" fill="none">
           {/* Blue Blob backdrop */}
@@ -54,6 +56,7 @@ export function SolutionSection() {
     {
       title: 'People',
       description: 'Collaborate in real time',
+      bgGlow: 'hover:border-rose-300',
       icon: (
         <svg className="w-14 h-14" viewBox="0 0 60 60" fill="none">
           {/* Coral / Pink Blob backdrop */}
@@ -79,6 +82,7 @@ export function SolutionSection() {
     {
       title: 'Views',
       description: 'Board, list, calendar and more',
+      bgGlow: 'hover:border-emerald-300',
       icon: (
         <svg className="w-14 h-14" viewBox="0 0 60 60" fill="none">
           {/* Emerald / Teal Blob backdrop */}
@@ -107,17 +111,23 @@ export function SolutionSection() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
           
           {/* LEFT COLUMN: THE SOLUTION HEADLINE & PARAGRAPH */}
-          <div className="lg:col-span-5 flex flex-col justify-center items-start">
+          <motion.div 
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="lg:col-span-5 flex flex-col justify-center items-start"
+          >
             
             {/* Eyebrow Label */}
-            <span className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-3">
+            <span className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-3 px-2.5 py-1 rounded-full bg-zinc-200/60 border border-zinc-300/60">
               THE SOLUTION
             </span>
 
             {/* Headline */}
             <h2 className="font-serif-title text-5xl sm:text-6xl lg:text-7xl font-normal text-zinc-950 leading-[1.05] tracking-tight">
               One workspace. <br />
-              <span className="block">Every moving part.</span>
+              <span className="block text-zinc-800 italic">Every moving part.</span>
             </h2>
 
             {/* Paragraph */}
@@ -125,26 +135,26 @@ export function SolutionSection() {
               Organize your projects, manage tasks, collaborate with your team and keep track of everything — all in one place.
             </p>
 
-          </div>
+          </motion.div>
 
-          {/* RIGHT COLUMN: 4 FEATURE COLUMNS */}
-          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-4 items-start pt-4 lg:pt-0">
+          {/* RIGHT COLUMN: 4 FEATURE CARDS WITH HOVER LIFT */}
+          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-4 items-start pt-4 lg:pt-0">
             {features.map((item, index) => (
               <motion.div
                 key={item.title}
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
-                className="flex flex-col items-center text-center group cursor-pointer"
+                className={`p-5 rounded-2xl bg-white/60 border border-zinc-200/80 hover:bg-white ${item.bgGlow} hover:shadow-lg transition-all duration-300 flex flex-col items-center text-center group cursor-pointer transform hover:-translate-y-2`}
               >
                 {/* Custom Vector Icon Container */}
-                <div className="mb-4 transform group-hover:scale-105 transition-transform duration-200 flex items-center justify-center">
+                <div className="mb-4 transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 flex items-center justify-center">
                   {item.icon}
                 </div>
 
                 {/* Feature Title */}
-                <h3 className="font-bold text-base sm:text-lg text-zinc-900 tracking-tight">
+                <h3 className="font-bold text-base sm:text-lg text-zinc-900 tracking-tight group-hover:text-zinc-950">
                   {item.title}
                 </h3>
 

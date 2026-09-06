@@ -12,14 +12,16 @@ import {
   useDroppable,
   useDraggable,
 } from '@dnd-kit/core';
-import { useTaskStore } from '@/store/useTaskStore';
-import { useWorkspaceStore } from '@/store/useWorkspaceStore';
-import { useProjectStore } from '@/store/useProjectStore';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useTaskStore } from '@/features/tasks/store/useTaskStore';
+import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore';
+import { useProjectStore } from '@/features/projects/store/useProjectStore';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { useActivityStore } from '@/store/useActivityStore';
 import { useUIStore } from '@/store/useUIStore';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Task, TaskStatus } from '@/types';
+import { useFilterStore } from '@/features/workspaces/store/useFilterStore';
+import { useCommandHistoryStore } from '@/store/useCommandHistoryStore';
+import { TaskStatus, TaskWithRelations } from '@/features/tasks/types';
 import { toast } from 'sonner';
 import {
   Search,
@@ -27,16 +29,18 @@ import {
   Calendar as CalendarIcon,
   MessageSquare,
   CheckSquare,
+  Bookmark,
+  Trash2,
 } from 'lucide-react';
 
-function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
+function DraggableTaskCard({ task, onClick }: { task: TaskWithRelations; onClick: () => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
     data: { task },
   });
 
   const projects = useProjectStore((s) => s.projects);
-  const members = useAuthStore((s) => s.members);
+  const workspaceMembers = useWorkspaceStore((s) => s.members);
 
   const style = transform
     ? {
@@ -52,10 +56,10 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
     urgent: 'bg-purple-100 text-purple-700',
   };
 
-  const project = projects.find((p) => p.id === task.projectId);
-  const assignee = members.find((m) => m.id === task.assigneeId) || (task as any).assignee;
+  const project = projects.find((p) => p.id === task.project_id);
+  const assignee = workspaceMembers.find((m) => m.user_id === task.assignee_id)?.profile;
   const completedSubtasks = task.subtasks?.filter((st) => st.completed).length || 0;
-  const badgeLabel = task.category || project?.name || 'General';
+  const badgeLabel = project?.name || 'General';
 
   return (
     <div
@@ -65,7 +69,7 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
       {...attributes}
       onClick={onClick}
       className={`bg-white p-3.5 rounded-xl border border-zinc-200/80 shadow-2xs hover:shadow-md transition-all space-y-3 cursor-grab active:cursor-grabbing group ${
-        task.status === 'completed' || task.status === 'done' ? 'opacity-70' : ''
+        task.status === 'done' ? 'opacity-70' : ''
       }`}
     >
       {/* TOP */}
@@ -85,7 +89,7 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
       {/* CENTER */}
       <h4
         className={`text-sm font-bold text-zinc-900 leading-snug group-hover:text-amber-900 transition-colors break-words ${
-          task.status === 'completed' || task.status === 'done' ? 'line-through text-zinc-400' : ''
+          task.status === 'done' ? 'line-through text-zinc-400' : ''
         }`}
       >
         {task.title}
@@ -96,9 +100,9 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
         <div className="flex items-center gap-1">
           {assignee ? (
             <img
-              src={assignee.avatar}
-              alt={assignee.name}
-              title={assignee.name}
+              src={assignee.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'}
+              alt={assignee.full_name || 'User'}
+              title={assignee.full_name || 'User'}
               className="w-6 h-6 rounded-full object-cover ring-2 ring-white shrink-0"
             />
           ) : (
@@ -121,7 +125,7 @@ function DraggableTaskCard({ task, onClick }: { task: Task; onClick: () => void 
           )}
           <span className="flex items-center gap-1">
             <CalendarIcon className="w-3.5 h-3.5 text-zinc-400" />
-            {task.dueDate}
+            {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}
           </span>
         </div>
       </div>
@@ -141,7 +145,7 @@ function KanbanColumn({
   id: TaskStatus;
   title: string;
   color: string;
-  tasks: Task[];
+  tasks: TaskWithRelations[];
   onTaskClick: (taskId: string) => void;
   onAddTask: () => void;
   canCreateTask: boolean;
@@ -151,7 +155,7 @@ function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`bg-[#FAF7F2] rounded-2xl p-3.5 border transition-colors flex flex-col min-w-[320px] max-w-[360px] flex-shrink-0 min-h-[500px] ${
+      className={`bg-[#FAF7F2] rounded-2xl p-3 sm:p-3.5 border transition-colors flex flex-col w-[280px] sm:min-w-[300px] sm:max-w-[360px] flex-shrink-0 min-h-[400px] sm:min-h-[500px] ${
         isOver ? 'border-amber-400 bg-amber-50/30' : 'border-zinc-200/80'
       }`}
     >
@@ -191,27 +195,27 @@ function KanbanColumn({
 
 export function DashboardKanban() {
   const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
-  const selectedProjectFilter = useWorkspaceStore((state) => state.selectedProjectFilter);
-  const setSelectedProjectFilter = useWorkspaceStore((state) => state.setSelectedProjectFilter);
   const setActiveTab = useWorkspaceStore((state) => state.setActiveTab);
 
   const projects = useProjectStore((state) => state.projects);
   const tasks = useTaskStore((state) => state.tasks);
   const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
+  const loadTasks = useTaskStore((state) => state.loadTasks);
+  const undoStore = useCommandHistoryStore();
 
-  const currentUser = useAuthStore((state) => state.currentUser);
-  const members = useAuthStore((state) => state.members);
+  const currentUser = useAuthStore((state) => state.user);
+  const workspaceMembers = useWorkspaceStore((state) => state.members);
   const logActivity = useActivityStore((state) => state.logActivity);
 
   const setCreateTaskModalOpen = useUIStore((state) => state.setCreateTaskModalOpen);
   const setSelectedTaskIdForModal = useUIStore((state) => state.setSelectedTaskIdForModal);
-
+  const filterState = useFilterStore();
+  
   const permissions = usePermissions();
 
   const [activeView, setActiveView] = useState<'board' | 'list'>('board');
-  const [localSearch, setLocalSearch] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
+  const [activeDragTask, setActiveDragTask] = useState<TaskWithRelations | null>(null);
+  const [showPresetsMenu, setShowPresetsMenu] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -221,28 +225,52 @@ export function DashboardKanban() {
     })
   );
 
+  React.useEffect(() => {
+    if (filterState.projectFilter) {
+      loadTasks(filterState.projectFilter);
+    } else if (projects.length > 0) {
+      loadTasks(projects[0].id);
+    }
+  }, [filterState.projectFilter, projects, loadTasks]);
+
   const workspaceTasks = tasks.filter((t) => {
-    if (t.workspaceId !== activeWorkspaceId) return false;
-    if (selectedProjectFilter && t.projectId !== selectedProjectFilter) return false;
-    if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
-    if (localSearch.trim()) {
-      return (
-        t.title.toLowerCase().includes(localSearch.toLowerCase()) ||
-        (t.category && t.category.toLowerCase().includes(localSearch.toLowerCase()))
-      );
+    if (filterState.projectFilter && t.project_id !== filterState.projectFilter) return false;
+    if (filterState.priorityFilter !== 'all' && t.priority !== filterState.priorityFilter) return false;
+    if (filterState.assigneeFilter && t.assignee_id !== filterState.assigneeFilter) return false;
+    
+    if (filterState.dateFilter) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const taskDate = t.due_date ? new Date(t.due_date) : null;
+      if (taskDate) taskDate.setHours(0, 0, 0, 0);
+
+      if (filterState.dateFilter === 'today') {
+        if (!taskDate || taskDate.getTime() !== today.getTime()) return false;
+      } else if (filterState.dateFilter === 'overdue') {
+        if (!taskDate || taskDate.getTime() >= today.getTime()) return false;
+      } else if (filterState.dateFilter === 'this_week') {
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        if (!taskDate || taskDate.getTime() < today.getTime() || taskDate.getTime() > nextWeek.getTime()) return false;
+      }
+    }
+
+    if (filterState.searchFilter.trim()) {
+      return t.title.toLowerCase().includes(filterState.searchFilter.toLowerCase());
     }
     return true;
   });
 
   const columns: { id: TaskStatus; title: string; color: string }[] = [
     { id: 'todo', title: 'Todo', color: 'bg-amber-400' },
-    { id: 'in-progress', title: 'In Progress', color: 'bg-blue-500' },
+    { id: 'in_progress', title: 'In Progress', color: 'bg-blue-500' },
     { id: 'review', title: 'Review', color: 'bg-purple-500' },
     { id: 'done', title: 'Done', color: 'bg-emerald-500' },
   ];
 
   const handleDragStart = (event: DragStartEvent) => {
-    const task = event.active.data.current?.task as Task;
+    const task = event.active.data.current?.task as TaskWithRelations;
     if (task) {
       setActiveDragTask(task);
     }
@@ -269,25 +297,28 @@ export function DashboardKanban() {
     updateTaskStatus(taskId, newStatus);
 
     // Audit Log Activity
-    logActivity(
-      activeWorkspaceId,
-      currentUser.id,
-      currentUser.name,
-      currentUser.avatar,
-      `moved "${task.title}" from ${previousStatus.replace('-', ' ')} to ${newStatus.replace('-', ' ')}`,
-      'task',
-      task.title
-    );
+    if (activeWorkspaceId && currentUser) {
+      logActivity(
+        activeWorkspaceId,
+        currentUser.id,
+        currentUser.email || 'User',
+        '', // avatar
+        `moved "${task.title}" from ${previousStatus.replace('_', ' ')} to ${newStatus.replace('_', ' ')}`,
+        'task',
+        task.title
+      );
+    }
 
     // Toast Notification with details
-    toast.success(`Moved "${task.title}" from ${previousStatus.replace('-', ' ')} to ${newStatus.replace('-', ' ')}`, {
+    toast.success(`Moved "${task.title}" to ${newStatus.replace('_', ' ')}`, {
       action: {
         label: 'Undo',
         onClick: () => {
           updateTaskStatus(taskId, previousStatus);
-          toast.info(`Moved back to ${previousStatus.replace('-', ' ')}`);
+          toast.info(`Moved back to ${previousStatus.replace('_', ' ')}`);
         },
       },
+      duration: 5000,
     });
   };
 
@@ -298,12 +329,33 @@ export function DashboardKanban() {
     urgent: 'bg-purple-100 text-purple-700',
   };
 
+  const handleSavePreset = () => {
+    const name = prompt('Enter a name for this filter preset:');
+    if (name) {
+      filterState.savePreset({
+        name,
+        projectFilter: filterState.projectFilter,
+        priorityFilter: filterState.priorityFilter,
+        assigneeFilter: filterState.assigneeFilter,
+        dateFilter: filterState.dateFilter,
+        searchFilter: filterState.searchFilter,
+      });
+      toast.success('Filter preset saved!');
+    }
+  };
+
+  const handleApplyPreset = (preset: any) => {
+    filterState.applyPreset(preset);
+    setShowPresetsMenu(false);
+    toast.success(`Applied preset: ${preset.name}`);
+  };
+
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-3xl border border-zinc-200/90 p-6 sm:p-8 shadow-xs select-none space-y-6">
+    <div className="bg-white/90 backdrop-blur-md rounded-3xl border border-zinc-200/90 p-4 sm:p-6 lg:p-8 shadow-xs select-none space-y-4 sm:space-y-6 min-w-0 w-full">
       {/* Top Controls Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-6">
-          <h2 className="font-serif font-bold text-2xl text-zinc-950 tracking-tight">Task Board</h2>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
+          <h2 className="font-serif font-bold text-xl sm:text-2xl text-zinc-950 tracking-tight">Task Board</h2>
 
           <div className="flex items-center gap-1 bg-zinc-100/90 p-1 rounded-xl border border-zinc-200/80">
             <button
@@ -331,15 +383,15 @@ export function DashboardKanban() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto flex-wrap">
           <select
-            value={selectedProjectFilter || ''}
-            onChange={(e) => setSelectedProjectFilter(e.target.value || null)}
+            value={filterState.projectFilter || ''}
+            onChange={(e) => filterState.setProjectFilter(e.target.value || null)}
             className="bg-zinc-50 border border-zinc-200/90 rounded-xl px-3 py-1.5 text-xs text-zinc-800 font-medium focus:outline-none"
           >
             <option value="">All Projects</option>
             {projects
-              .filter((p) => p.workspaceId === activeWorkspaceId)
+              .filter((p) => p.workspace_id === activeWorkspaceId)
               .map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -348,8 +400,32 @@ export function DashboardKanban() {
           </select>
 
           <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
+            value={filterState.assigneeFilter || ''}
+            onChange={(e) => filterState.setAssigneeFilter(e.target.value || null)}
+            className="bg-zinc-50 border border-zinc-200/90 rounded-xl px-3 py-1.5 text-xs text-zinc-800 font-medium focus:outline-none"
+          >
+            <option value="">All Assignees</option>
+            {workspaceMembers.map((m) => (
+              <option key={m.user_id} value={m.user_id}>
+                {m.profile?.full_name || m.profile?.email || 'User'}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filterState.dateFilter || ''}
+            onChange={(e) => filterState.setDateFilter(e.target.value || null)}
+            className="bg-zinc-50 border border-zinc-200/90 rounded-xl px-3 py-1.5 text-xs text-zinc-800 font-medium focus:outline-none"
+          >
+            <option value="">Any Date</option>
+            <option value="today">Due Today</option>
+            <option value="this_week">Due This Week</option>
+            <option value="overdue">Overdue</option>
+          </select>
+
+          <select
+            value={filterState.priorityFilter}
+            onChange={(e) => filterState.setPriorityFilter(e.target.value)}
             className="bg-zinc-50 border border-zinc-200/90 rounded-xl px-3 py-1.5 text-xs text-zinc-800 font-medium focus:outline-none"
           >
             <option value="all">All Priorities</option>
@@ -359,12 +435,50 @@ export function DashboardKanban() {
             <option value="low">Low</option>
           </select>
 
-          <div className="relative flex-1 sm:w-48">
+          <div className="relative">
+            <button
+              onClick={() => setShowPresetsMenu(!showPresetsMenu)}
+              className="bg-zinc-50 border border-zinc-200/90 rounded-xl px-3 py-1.5 text-xs text-zinc-800 font-medium hover:bg-zinc-100 transition-colors flex items-center gap-1.5"
+            >
+              <Bookmark className="w-3.5 h-3.5" />
+              Presets
+            </button>
+            
+            {showPresetsMenu && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-stone-200 py-2 z-50 animation-fade-in text-xs">
+                <div className="px-3 pb-2 mb-2 border-b border-stone-100 flex justify-between items-center">
+                  <span className="font-bold text-stone-700">Saved Filters</span>
+                  <button onClick={handleSavePreset} className="text-blue-600 font-semibold hover:underline">
+                    Save Current
+                  </button>
+                </div>
+                {filterState.savedPresets.length === 0 ? (
+                  <div className="px-4 py-2 text-stone-400 text-center italic">No presets saved</div>
+                ) : (
+                  filterState.savedPresets.map(preset => (
+                    <div key={preset.id} className="flex items-center justify-between hover:bg-stone-50 px-2 py-1 mx-1 rounded group cursor-pointer transition-colors">
+                      <span onClick={() => handleApplyPreset(preset)} className="flex-1 font-medium text-stone-700 px-2 py-1">
+                        {preset.name}
+                      </span>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); filterState.deletePreset(preset.id); }}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-stone-400 hover:text-rose-600 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="relative flex-1 min-w-[120px] sm:w-48">
             <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              value={localSearch}
-              onChange={(e) => setLocalSearch(e.target.value)}
+              value={filterState.searchFilter}
+              onChange={(e) => filterState.setSearchFilter(e.target.value)}
               placeholder="Search tasks..."
               className="w-full bg-zinc-50 border border-zinc-200/90 rounded-xl pl-9 pr-3 py-1.5 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none"
             />
@@ -384,11 +498,11 @@ export function DashboardKanban() {
 
       {activeView === 'board' ? (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="overflow-x-auto pb-4 custom-scrollbar">
-            <div className="flex gap-6 items-start pt-2 h-full min-h-[600px] w-max">
+          <div className="overflow-x-auto pb-4 custom-scrollbar -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+            <div className="flex gap-4 sm:gap-6 items-start pt-2 h-full min-h-[400px] sm:min-h-[600px] w-max">
             {columns.map((col) => {
               const colTasks = workspaceTasks.filter(
-                (t) => t.status === col.id || (col.id === 'done' && t.status === 'completed')
+                (t) => t.status === col.id || (col.id === 'done' && t.status === 'completed' as any)
               );
               return (
                 <KanbanColumn
@@ -398,7 +512,7 @@ export function DashboardKanban() {
                   color={col.color}
                   tasks={colTasks}
                   onTaskClick={(id) => setSelectedTaskIdForModal(id)}
-                  onAddTask={() => setCreateTaskModalOpen(true, col.id)}
+                  onAddTask={() => setCreateTaskModalOpen(true, col.id as any)}
                   canCreateTask={permissions.canCreateTask}
                 />
               );
@@ -416,8 +530,8 @@ export function DashboardKanban() {
         </DndContext>
       ) : (
         /* List View */
-        <div className="overflow-hidden border border-zinc-200 rounded-2xl">
-          <table className="w-full text-left text-xs font-sans">
+        <div className="w-full min-w-0 overflow-x-auto border border-zinc-200 rounded-2xl">
+          <table className="w-full text-left text-xs font-sans min-w-[640px]">
             <thead className="bg-zinc-50 border-b border-zinc-200 text-stone-500 uppercase tracking-wider font-semibold">
               <tr>
                 <th className="p-3.5">Task</th>
@@ -430,7 +544,7 @@ export function DashboardKanban() {
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {workspaceTasks.map((t) => {
-                const assigneeUser = members.find((m) => m.id === t.assigneeId);
+                const assigneeUser = workspaceMembers.find((m) => m.user_id === t.assignee_id)?.profile;
                 return (
                   <tr
                     key={t.id}
@@ -440,7 +554,7 @@ export function DashboardKanban() {
                     <td className="p-3.5 font-bold text-stone-900">{t.title}</td>
                     <td className="p-3.5 capitalize">
                       <span className="px-2.5 py-1 rounded-full bg-stone-100 text-stone-700 text-[11px] font-semibold">
-                        {t.status.replace('-', ' ')}
+                        {t.status.replace('_', ' ')}
                       </span>
                     </td>
                     <td className="p-3.5">
@@ -448,13 +562,13 @@ export function DashboardKanban() {
                         {t.priority}
                       </span>
                     </td>
-                    <td className="p-3.5 text-stone-600 font-medium">{t.category}</td>
-                    <td className="p-3.5 text-stone-500">{t.dueDate}</td>
+                    <td className="p-3.5 text-stone-600 font-medium">General</td>
+                    <td className="p-3.5 text-stone-500">{t.due_date}</td>
                     <td className="p-3.5 flex items-center gap-2">
                       {assigneeUser && (
                         <>
-                          <img src={assigneeUser.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
-                          <span className="text-stone-700 font-medium">{assigneeUser.name}</span>
+                          <img src={assigneeUser.avatar_url || ''} alt="" className="w-5 h-5 rounded-full object-cover" />
+                          <span className="text-stone-700 font-medium">{assigneeUser.full_name}</span>
                         </>
                       )}
                     </td>

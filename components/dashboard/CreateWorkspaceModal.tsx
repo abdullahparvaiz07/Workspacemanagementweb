@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { useUIStore } from '@/store/useUIStore';
-import { useWorkspaceStore } from '@/store/useWorkspaceStore';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { useActivityStore } from '@/store/useActivityStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
@@ -14,54 +14,56 @@ export default function CreateWorkspaceModal() {
   const setCreateWorkspaceModalOpen = useUIStore((state) => state.setCreateWorkspaceModalOpen);
 
   const createWorkspace = useWorkspaceStore((state) => state.createWorkspace);
-  const currentUser = useAuthStore((state) => state.currentUser);
+  const currentUser = useAuthStore((state) => state.user);
   const logActivity = useActivityStore((state) => state.logActivity);
 
   const permissions = usePermissions();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Product & Design');
+  const [category, setCategory] = useState('');
+  const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       toast.error('Workspace name is required.');
       return;
     }
+    
+    if (!currentUser) return;
 
-    if (!permissions.canManageWorkspace) {
-      toast.error('Your role does not allow creating workspaces.');
-      return;
-    }
+    setLoading(true);
+    try {
+      const newWs = await createWorkspace(name.trim(), description.trim(), category, currentUser.id);
 
-    const newWs = createWorkspace(name.trim(), description.trim(), category);
-
-    if (currentUser) {
       logActivity(
         newWs.id,
         currentUser.id,
-        currentUser.name,
-        currentUser.avatar,
+        currentUser.email || 'User',
+        '', // avatar
         'created workspace',
         'workspace',
         name.trim()
       );
+
+      toast.success(`Workspace "${name.trim()}" created successfully!`);
+      setCreateWorkspaceModalOpen(false);
+      setName('');
+      setDescription('');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create workspace.');
+    } finally {
+      setLoading(false);
     }
-
-    toast.success(`Workspace "${name.trim()}" created successfully!`);
-    setCreateWorkspaceModalOpen(false);
-
-    setName('');
-    setDescription('');
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-lg overflow-hidden animation-fade-in font-sans">
-        <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+      <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animation-fade-in font-sans">
+        <div className="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50 flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-amber-100 text-amber-800">
               <Building2 className="w-5 h-5" />
@@ -79,7 +81,7 @@ export default function CreateWorkspaceModal() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-sm">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-sm overflow-y-auto flex-1">
           <div>
             <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">
               Workspace Name *
@@ -130,9 +132,16 @@ export default function CreateWorkspaceModal() {
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-stone-900 text-stone-50 font-medium text-xs hover:bg-stone-800 shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              disabled={loading}
+              className="px-5 py-2 rounded-xl bg-stone-900 text-stone-50 font-medium text-xs hover:bg-stone-800 shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-70"
             >
-              <Plus className="w-4 h-4" /> Create Workspace
+              {loading ? (
+                <span>Creating...</span>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" /> Create Workspace
+                </>
+              )}
             </button>
           </div>
         </form>

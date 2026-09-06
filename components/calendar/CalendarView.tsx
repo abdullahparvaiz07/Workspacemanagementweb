@@ -2,6 +2,10 @@
 
 import React, { useState } from 'react';
 import { useUIStore } from '@/store/useUIStore';
+import { useTaskStore } from '@/store/useTaskStore';
+import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { useProjectStore } from '@/store/useProjectStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import {
   Plus,
   MoreHorizontal,
@@ -60,198 +64,62 @@ export function CalendarView() {
     '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM'
   ];
 
-  // Events matching the exact reference screenshot layout
-  const events: CalendarEvent[] = [
-    // Monday (dayIndex: 0)
-    {
-      id: 'e1',
-      title: 'Team Standup',
-      category: 'General',
-      time: '9:00 - 10:00',
-      dayIndex: 0,
-      startHour: 9,
-      durationHours: 1,
-      cardStyle: 'bg-blue-50/90 border-l-4 border-blue-500 text-blue-950 hover:bg-blue-100/90',
-      badgeColor: 'text-blue-700',
-      assignees: [avatars[0], avatars[1]]
-    },
-    {
-      id: 'e2',
-      title: 'Design Review',
-      category: 'Website Redesign',
-      time: '11:00 - 12:00',
-      dayIndex: 0,
-      startHour: 11,
-      durationHours: 1,
-      cardStyle: 'bg-emerald-50/90 border-l-4 border-emerald-500 text-emerald-950 hover:bg-emerald-100/90',
-      badgeColor: 'text-emerald-700',
-      assignees: [avatars[2], avatars[3]]
-    },
-    {
-      id: 'e3',
-      title: 'Client Meeting',
-      category: 'Acme Corp',
-      time: '2:00 - 3:00',
-      dayIndex: 0,
-      startHour: 14,
-      durationHours: 1,
-      cardStyle: 'bg-purple-50/90 border-l-4 border-purple-500 text-purple-950 hover:bg-purple-100/90',
-      badgeColor: 'text-purple-700',
-      assignees: [avatars[0]]
-    },
-    {
-      id: 'e4',
-      title: 'Sprint Planning',
-      category: 'Product Roadmap',
-      time: '4:00 - 5:00',
-      dayIndex: 0,
-      startHour: 16,
-      durationHours: 1,
-      cardStyle: 'bg-rose-50/90 border-l-4 border-rose-500 text-rose-950 hover:bg-rose-100/90',
-      badgeColor: 'text-rose-700',
-      assignees: [avatars[1], avatars[2], avatars[3]]
-    },
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const tasks = useTaskStore((s) => s.tasks);
+  const projects = useProjectStore((s) => s.projects);
+  const members = useAuthStore((s) => s.members);
+  const setSelectedTaskIdForModal = useUIStore((s) => s.setSelectedTaskIdForModal);
 
-    // Tuesday (dayIndex: 1 - Today)
-    {
-      id: 'e5',
-      title: 'Product Sync',
-      category: 'Mobile Application',
-      time: '10:00 - 11:00',
-      dayIndex: 1,
-      startHour: 10,
-      durationHours: 1,
-      cardStyle: 'bg-amber-50/90 border-l-4 border-amber-500 text-amber-950 hover:bg-amber-100/90',
-      badgeColor: 'text-amber-700',
-      assignees: [avatars[0], avatars[2]]
-    },
-    {
-      id: 'e6',
-      title: 'UX Workshop',
-      category: 'Design System',
-      time: '1:00 - 2:00',
-      dayIndex: 1,
-      startHour: 13,
-      durationHours: 1,
-      cardStyle: 'bg-blue-50/90 border-l-4 border-blue-500 text-blue-950 hover:bg-blue-100/90',
-      badgeColor: 'text-blue-700',
-      assignees: [avatars[1], avatars[3]]
-    },
-    {
-      id: 'e7',
-      title: 'Development Review',
-      category: 'Mobile Application',
-      time: '3:30 - 5:00',
-      dayIndex: 1,
-      startHour: 15.5,
-      durationHours: 1.5,
-      cardStyle: 'bg-emerald-50/90 border-l-4 border-emerald-500 text-emerald-950 hover:bg-emerald-100/90',
-      badgeColor: 'text-emerald-700',
-      assignees: [avatars[0], avatars[1]]
-    },
+  const workspaceTasks = tasks.filter(t => t.workspaceId === activeWorkspaceId && t.status !== 'completed');
 
-    // Wednesday (dayIndex: 2)
-    {
-      id: 'e8',
-      title: 'Marketing Update',
-      category: 'Marketing Launch',
-      time: '9:30 - 10:30',
-      dayIndex: 2,
-      startHour: 9.5,
-      durationHours: 1,
-      cardStyle: 'bg-rose-50/90 border-l-4 border-rose-500 text-rose-950 hover:bg-rose-100/90',
-      badgeColor: 'text-rose-700',
-      assignees: [avatars[2], avatars[3]]
-    },
-    {
-      id: 'e9',
-      title: 'Lunch with Team',
-      category: 'Social',
-      time: '12:00 - 1:00',
-      dayIndex: 2,
-      startHour: 12,
-      durationHours: 1,
-      cardStyle: 'bg-indigo-50/90 border-l-4 border-indigo-500 text-indigo-950 hover:bg-indigo-100/90',
-      badgeColor: 'text-indigo-700',
-      assignees: []
-    },
-    {
-      id: 'e10',
-      title: 'Roadmap Planning',
-      category: 'Product',
-      time: '2:00 - 3:00',
-      dayIndex: 2,
-      startHour: 14,
-      durationHours: 1,
-      cardStyle: 'bg-amber-50/90 border-l-4 border-amber-500 text-amber-950 hover:bg-amber-100/90',
-      badgeColor: 'text-amber-700',
-      assignees: [avatars[0], avatars[1]]
-    },
-
-    // Thursday (dayIndex: 3)
-    {
-      id: 'e11',
-      title: 'Client Check-in',
-      category: 'Acme Corp',
-      time: '10:00 - 11:00',
-      dayIndex: 3,
-      startHour: 10,
-      durationHours: 1,
-      cardStyle: 'bg-emerald-50/90 border-l-4 border-emerald-500 text-emerald-950 hover:bg-emerald-100/90',
-      badgeColor: 'text-emerald-700',
-      assignees: [avatars[2]]
-    },
-    {
-      id: 'e12',
-      title: 'Content Strategy',
-      category: 'Marketing',
-      time: '3:00 - 4:00',
-      dayIndex: 3,
-      startHour: 15,
-      durationHours: 1,
-      cardStyle: 'bg-blue-50/90 border-l-4 border-blue-500 text-blue-950 hover:bg-blue-100/90',
-      badgeColor: 'text-blue-700',
-      assignees: [avatars[0], avatars[3]]
-    },
-
-    // Friday (dayIndex: 4)
-    {
-      id: 'e13',
-      title: 'Design System',
-      category: 'Design',
-      time: '9:00 - 10:00',
-      dayIndex: 4,
-      startHour: 9,
-      durationHours: 1,
-      cardStyle: 'bg-purple-50/90 border-l-4 border-purple-500 text-purple-950 hover:bg-purple-100/90',
-      badgeColor: 'text-purple-700',
-      assignees: [avatars[1], avatars[2]]
-    },
-    {
-      id: 'e14',
-      title: 'Stakeholder Review',
-      category: 'Website Redesign',
-      time: '1:00 - 2:00',
-      dayIndex: 4,
-      startHour: 13,
-      durationHours: 1,
-      cardStyle: 'bg-rose-50/90 border-l-4 border-rose-500 text-rose-950 hover:bg-rose-100/90',
-      badgeColor: 'text-rose-700',
-      assignees: [avatars[0], avatars[1], avatars[3]]
-    },
-    {
-      id: 'e15',
-      title: 'Weekly Wrap',
-      category: 'General',
-      time: '4:00 - 5:00',
-      dayIndex: 4,
-      startHour: 16,
-      durationHours: 1,
-      cardStyle: 'bg-amber-50/90 border-l-4 border-amber-500 text-amber-950 hover:bg-amber-100/90',
-      badgeColor: 'text-amber-700',
-      assignees: [avatars[2], avatars[3]]
+  // Dynamically map tasks to calendar events
+  const events: CalendarEvent[] = workspaceTasks.map((task, idx) => {
+    const project = projects.find(p => p.id === task.projectId);
+    const assignee = members.find(m => m.id === task.assigneeId);
+    
+    // Pseudo-random but consistent time scheduling based on task ID length
+    const startHour = 9 + ((task.id.length + idx) % 7); // Distribute between 9 AM and 4 PM
+    
+    let dayIndex = 0;
+    if (task.dueDate === 'Today') {
+      dayIndex = 1;
+    } else if (task.dueDate === 'Tomorrow') {
+      dayIndex = 2;
+    } else {
+      const parsedDate = new Date(task.dueDate);
+      if (!isNaN(parsedDate.getTime())) {
+        dayIndex = parsedDate.getDay() === 0 ? 6 : parsedDate.getDay() - 1;
+      }
     }
-  ];
+
+    // Determine colors based on priority
+    let cardStyle = 'bg-blue-50/90 border-l-4 border-blue-500 text-blue-950 hover:bg-blue-100/90';
+    let badgeColor = 'text-blue-700';
+
+    if (task.priority === 'urgent' || task.priority === 'high') {
+      cardStyle = 'bg-rose-50/90 border-l-4 border-rose-500 text-rose-950 hover:bg-rose-100/90';
+      badgeColor = 'text-rose-700';
+    } else if (task.priority === 'medium') {
+      cardStyle = 'bg-amber-50/90 border-l-4 border-amber-500 text-amber-950 hover:bg-amber-100/90';
+      badgeColor = 'text-amber-700';
+    } else if (task.priority === 'low') {
+      cardStyle = 'bg-emerald-50/90 border-l-4 border-emerald-500 text-emerald-950 hover:bg-emerald-100/90';
+      badgeColor = 'text-emerald-700';
+    }
+
+    return {
+      id: task.id,
+      title: task.title,
+      category: project?.name || 'General',
+      time: `${startHour}:00 - ${startHour + 1}:00`,
+      dayIndex,
+      startHour,
+      durationHours: 1,
+      cardStyle,
+      badgeColor,
+      assignees: assignee ? [assignee.avatar] : []
+    };
+  });
 
   // Helper calculation for vertical grid placement
   // Each hour block has a height of 72px (h-18)
@@ -264,7 +132,7 @@ export function CalendarView() {
   };
 
   return (
-    <div className="space-y-8 max-w-[1500px] mx-auto w-full select-none">
+    <div className="space-y-6 sm:space-y-8 max-w-[1500px] mx-auto w-full min-w-0 select-none">
       
       {/* 1. Page Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -345,7 +213,7 @@ export function CalendarView() {
       </div>
 
       {/* 3. Main Split View: Left Schedule Grid (2/3) + Right Widgets Column (1/3) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         
         {/* LEFT COLUMN: Main Schedule Viewport (8 Columns on lg) */}
         <div className="lg:col-span-8 bg-white/90 backdrop-blur-md rounded-3xl border border-zinc-200/90 shadow-xs overflow-hidden">
@@ -430,6 +298,7 @@ export function CalendarView() {
                             return (
                               <div
                                 key={event.id}
+                                onClick={() => setSelectedTaskIdForModal(event.id)}
                                 style={{
                                   top: `${topOffset}px`,
                                   height: `${cardHeight}px`

@@ -1,38 +1,30 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowRight, CheckCircle2, MousePointer } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { ArrowRight, MousePointer } from 'lucide-react';
+import { motion } from 'motion/react';
 
 export function WorkInMotionSection() {
   const [activeColumn, setActiveColumn] = useState<'todo' | 'in-progress' | 'review' | 'done'>('review');
   const [isAnimating, setIsAnimating] = useState(false);
-  const [showToast, setShowToast] = useState(true);
-  const [toastMessage, setToastMessage] = useState('Task moved to Review');
 
   // Trigger an animated drag-and-drop demo when clicking "See it in action"
   const handleRunDemo = () => {
     if (isAnimating) return;
     setIsAnimating(true);
-    setShowToast(false);
 
     // Sequence: start at in-progress -> move to review -> move to done
     setTimeout(() => {
       setActiveColumn('review');
-      setToastMessage('Task moved to Review');
-      setShowToast(true);
       setTimeout(() => {
         setActiveColumn('done');
-        setToastMessage('Task moved to Done');
         setIsAnimating(false);
       }, 1800);
     }, 1200);
   };
 
-  const handleManualMove = (col: 'todo' | 'in-progress' | 'review' | 'done', colName: string) => {
+  const handleManualMove = (col: 'todo' | 'in-progress' | 'review' | 'done') => {
     setActiveColumn(col);
-    setToastMessage(`Task moved to ${colName}`);
-    setShowToast(true);
   };
 
   return (
@@ -111,7 +103,7 @@ export function WorkInMotionSection() {
               
               {/* --- COLUMN 1: TODO --- */}
               <div
-                onClick={() => handleManualMove('todo', 'To Do')}
+                onClick={() => handleManualMove('todo')}
                 className={`bg-[#FAF7F2] text-zinc-900 rounded-xl p-3 shadow-md border border-zinc-200/80 flex flex-col justify-between min-h-[280px] sm:min-h-[310px] cursor-pointer transition-all ${
                   activeColumn === 'todo' ? 'ring-2 ring-amber-400' : 'hover:border-zinc-300'
                 }`}
@@ -146,7 +138,7 @@ export function WorkInMotionSection() {
 
               {/* --- COLUMN 2: IN PROGRESS --- */}
               <div
-                onClick={() => handleManualMove('in-progress', 'In Progress')}
+                onClick={() => handleManualMove('in-progress')}
                 className={`bg-[#FAF7F2] text-zinc-900 rounded-xl p-3 shadow-md border border-zinc-200/80 flex flex-col justify-between min-h-[280px] sm:min-h-[310px] cursor-pointer transition-all ${
                   activeColumn === 'in-progress' ? 'ring-2 ring-amber-400' : 'hover:border-zinc-300'
                 }`}
@@ -171,7 +163,7 @@ export function WorkInMotionSection() {
 
               {/* --- COLUMN 3: REVIEW --- */}
               <div
-                onClick={() => handleManualMove('review', 'Review')}
+                onClick={() => handleManualMove('review')}
                 className={`bg-[#FAF7F2] text-zinc-900 rounded-xl p-3 shadow-md border border-zinc-200/80 flex flex-col justify-between min-h-[280px] sm:min-h-[310px] cursor-pointer transition-all ${
                   activeColumn === 'review' ? 'ring-2 ring-amber-400' : 'hover:border-zinc-300'
                 }`}
@@ -198,7 +190,7 @@ export function WorkInMotionSection() {
 
               {/* --- COLUMN 4: DONE --- */}
               <div
-                onClick={() => handleManualMove('done', 'Done')}
+                onClick={() => handleManualMove('done')}
                 className={`bg-[#FAF7F2] text-zinc-900 rounded-xl p-3 shadow-md border border-zinc-200/80 flex flex-col justify-between min-h-[280px] sm:min-h-[310px] cursor-pointer transition-all ${
                   activeColumn === 'done' ? 'ring-2 ring-amber-400' : 'hover:border-zinc-300'
                 }`}
@@ -261,32 +253,6 @@ export function WorkInMotionSection() {
                 </div>
               </motion.div>
             )}
-
-            {/* --- TOAST NOTIFICATION (Bottom Right) --- */}
-            <AnimatePresence>
-              {showToast && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute -bottom-6 right-0 sm:right-2 bg-zinc-900/95 text-white backdrop-blur-md rounded-xl border border-zinc-800 px-4 py-3 shadow-2xl z-30 flex items-center gap-3 text-xs"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  <div className="font-medium">
-                    <span>{toastMessage}</span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setActiveColumn('in-progress');
-                      setToastMessage('Task moved back');
-                    }}
-                    className="ml-2 text-emerald-400 hover:text-emerald-300 font-semibold underline underline-offset-2 transition-colors"
-                  >
-                    Undo
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
           </div>
 
