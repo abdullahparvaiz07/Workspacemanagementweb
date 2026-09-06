@@ -3,6 +3,7 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
+import Link from 'next/link';
 
 export function HeroLeft() {
   return (
@@ -26,15 +27,15 @@ export function HeroLeft() {
       {/* Action Buttons */}
       <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-4">
         {/* Primary CTA */}
-        <button className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium rounded-full px-7 py-3.5 text-base sm:text-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2.5 group active:scale-95">
+        <Link href="/login" className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium rounded-full px-7 py-3.5 text-base sm:text-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2.5 group active:scale-95">
           <span>Create your workspace</span>
           <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-        </button>
+        </Link>
 
         {/* Secondary CTA */}
-        <button className="bg-transparent hover:bg-zinc-200/50 text-zinc-900 font-medium rounded-full px-7 py-3.5 text-base sm:text-lg border border-zinc-300 hover:border-zinc-400 transition-all duration-200 active:scale-95">
+        <Link href="/dashboard" className="bg-transparent hover:bg-zinc-200/50 text-zinc-900 font-medium rounded-full px-7 py-3.5 text-base sm:text-lg border border-zinc-300 hover:border-zinc-400 transition-all duration-200 active:scale-95 flex items-center justify-center">
           Explore workspace
-        </button>
+        </Link>
       </div>
     </motion.div>
   );
