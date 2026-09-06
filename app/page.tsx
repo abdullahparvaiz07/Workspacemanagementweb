@@ -14,7 +14,7 @@ import { Layers, ShieldCheck, Zap } from 'lucide-react';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#FAF7F2] text-zinc-900 overflow-x-hidden selection:bg-amber-200 selection:text-zinc-900">
+    <main className="min-h-screen bg-[#FAF7F2] text-zinc-900 overflow-x-hidden selection:bg-amber-200 selection:text-zinc-900 animate-fade-in">
       {/* Top Navbar */}
       <Navbar />
 

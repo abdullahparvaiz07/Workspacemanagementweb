@@ -39,7 +39,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen lg:h-screen w-full bg-[#FAF7F2] text-zinc-900 flex flex-col lg:flex-row selection:bg-amber-200 select-none overflow-x-hidden lg:overflow-hidden font-sans">
+    <div className="min-h-screen lg:h-screen w-full bg-[#FAF7F2] text-zinc-900 flex flex-col lg:flex-row selection:bg-amber-200 select-none overflow-x-hidden lg:overflow-hidden font-sans animate-fade-in">
       {/* LEFT COLUMN */}
       <div className="w-full lg:w-1/2 p-6 sm:p-8 lg:p-10 flex flex-col justify-between relative bg-[#FAF7F2] border-r border-zinc-200/80 overflow-y-auto">
         <div>
