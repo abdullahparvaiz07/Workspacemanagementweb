@@ -10,9 +10,10 @@ interface AuthState {
   signup: (email: string, password: string, fullName: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateProfile: (updates: { full_name?: string; avatar_url?: string }) => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   loading: true,
@@ -49,6 +50,18 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
     } catch {
       set({ user: null, profile: null, loading: false });
+    }
+  },
+
+  updateProfile: async (updates) => {
+    const user = get().user;
+    const currentProfile = get().profile;
+    if (!user) return;
+    try {
+      const updated = await authService.updateProfile(user.id, updates);
+      set({ profile: updated || { ...currentProfile, ...updates, id: user.id, email: user.email } as Profile });
+    } catch (err) {
+      set({ profile: { ...currentProfile, ...updates, id: user.id, email: user.email } as Profile });
     }
   },
 }));

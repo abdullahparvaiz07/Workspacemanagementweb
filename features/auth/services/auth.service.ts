@@ -80,6 +80,17 @@ class AuthService {
 
     return data;
   }
+
+  async updateProfile(userId: string, updates: { full_name?: string; avatar_url?: string }) {
+    const { data, error } = await (this.supabase.from('profiles') as any)
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  }
 }
 
 export const authService = new AuthService();
