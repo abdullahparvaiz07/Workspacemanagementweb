@@ -106,7 +106,7 @@ export function SolutionSection() {
   ];
 
   return (
-    <section className="w-full bg-[#FAF7F2] py-16 lg:py-24 px-6 lg:px-12 border-t border-zinc-200/60 select-none">
+    <section id="solution" className="w-full bg-[#FAF7F2] py-16 lg:py-24 px-6 lg:px-12 border-t border-zinc-200/60 select-none">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
           

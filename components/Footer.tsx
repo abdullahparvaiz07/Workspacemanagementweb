@@ -7,7 +7,7 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="w-full bg-[#FAF7F2] border-t border-zinc-200/80 text-zinc-900 pt-16 pb-12 px-6 lg:px-12 select-none">
+    <footer id="resources" className="w-full bg-[#FAF7F2] border-t border-zinc-200/80 text-zinc-900 pt-16 pb-12 px-6 lg:px-12 select-none">
       <div className="max-w-7xl mx-auto">
         
         {/* Main Footer Grid */}

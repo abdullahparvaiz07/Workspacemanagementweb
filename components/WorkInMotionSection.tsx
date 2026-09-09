@@ -28,7 +28,7 @@ export function WorkInMotionSection() {
   };
 
   return (
-    <section className="w-full bg-zinc-950 text-white py-20 lg:py-28 px-6 lg:px-12 relative overflow-hidden select-none">
+    <section id="workflow" className="w-full bg-zinc-950 text-white py-20 lg:py-28 px-6 lg:px-12 relative overflow-hidden select-none">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           

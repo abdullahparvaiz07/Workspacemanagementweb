@@ -19,7 +19,7 @@ export default function Home() {
       <Navbar />
 
       {/* Main Hero Container */}
-      <section className="relative w-full max-w-7xl mx-auto px-6 lg:px-12 pt-0 pb-6 lg:pt-2 lg:pb-12 flex flex-col justify-between">
+      <section id="product" className="relative w-full max-w-7xl mx-auto px-6 lg:px-12 pt-0 pb-6 lg:pt-2 lg:pb-12 flex flex-col justify-between">
         
         {/* Two Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mt-2 lg:mt-4">

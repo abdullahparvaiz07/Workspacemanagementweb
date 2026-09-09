@@ -8,10 +8,20 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
 
+  const scrollToSection = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    setMobileMenuOpen(false);
+    setResourcesOpen(false);
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <header className="w-full max-w-7xl mx-auto px-6 lg:px-12 pt-6 pb-4 flex items-center justify-between relative z-30">
       {/* Brand Logo */}
-      <a href="#" className="flex items-center gap-1 group">
+      <a href="#product" onClick={(e) => scrollToSection(e, 'product')} className="flex items-center gap-1 group">
         <span className="font-serif-title font-extrabold text-2xl lg:text-3xl tracking-tight text-zinc-900 group-hover:text-zinc-700 transition-colors">
           WORKROOM.
         </span>
@@ -19,10 +29,16 @@ export function Navbar() {
 
       {/* Center Nav Links - Desktop */}
       <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-700">
-        <a href="#product" className="hover:text-zinc-900 transition-colors">
+        <a href="#product" onClick={(e) => scrollToSection(e, 'product')} className="hover:text-zinc-900 transition-colors">
           Product
         </a>
-        <a href="#features" className="hover:text-zinc-900 transition-colors">
+        <a href="#solution" onClick={(e) => scrollToSection(e, 'solution')} className="hover:text-zinc-900 transition-colors">
+          Solutions
+        </a>
+        <a href="#workflow" onClick={(e) => scrollToSection(e, 'workflow')} className="hover:text-zinc-900 transition-colors">
+          Workflow
+        </a>
+        <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hover:text-zinc-900 transition-colors">
           Features
         </a>
         
@@ -30,7 +46,7 @@ export function Navbar() {
         <div className="relative">
           <button
             onClick={() => setResourcesOpen(!resourcesOpen)}
-            className="flex items-center gap-1 hover:text-zinc-900 transition-colors focus:outline-none"
+            className="flex items-center gap-1 hover:text-zinc-900 transition-colors focus:outline-none cursor-pointer"
           >
             <span>Resources</span>
             <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${resourcesOpen ? 'rotate-180' : ''}`} />
@@ -43,16 +59,28 @@ export function Navbar() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 8 }}
                 transition={{ duration: 0.15 }}
-                className="absolute top-full left-0 mt-2 w-48 bg-white/95 backdrop-blur-md rounded-xl border border-zinc-200/80 shadow-lg p-2 z-50"
+                className="absolute top-full left-0 mt-2 w-52 bg-white/95 backdrop-blur-md rounded-xl border border-zinc-200/80 shadow-lg p-2 z-50"
               >
-                <a href="#docs" className="block px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-100 rounded-lg">
-                  Documentation
+                <a 
+                  href="#features" 
+                  onClick={(e) => scrollToSection(e, 'features')} 
+                  className="block px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-100 rounded-lg"
+                >
+                  Documentation & Features
                 </a>
-                <a href="#templates" className="block px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-100 rounded-lg">
-                  Templates & Guides
+                <a 
+                  href="#workflow" 
+                  onClick={(e) => scrollToSection(e, 'workflow')} 
+                  className="block px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-100 rounded-lg"
+                >
+                  Workflow & Guides
                 </a>
-                <a href="#community" className="block px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-100 rounded-lg">
-                  Community Hub
+                <a 
+                  href="#resources" 
+                  onClick={(e) => scrollToSection(e, 'resources')} 
+                  className="block px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-100 rounded-lg"
+                >
+                  Community & Support
                 </a>
               </motion.div>
             )}
@@ -89,13 +117,19 @@ export function Navbar() {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-lg border-b border-zinc-200/80 shadow-xl px-6 py-6 flex flex-col gap-4 z-50 overflow-hidden"
           >
-            <a href="#product" className="text-base font-medium text-zinc-800 py-1">
+            <a href="#product" onClick={(e) => scrollToSection(e, 'product')} className="text-base font-medium text-zinc-800 py-1">
               Product
             </a>
-            <a href="#features" className="text-base font-medium text-zinc-800 py-1">
+            <a href="#solution" onClick={(e) => scrollToSection(e, 'solution')} className="text-base font-medium text-zinc-800 py-1">
+              Solutions
+            </a>
+            <a href="#workflow" onClick={(e) => scrollToSection(e, 'workflow')} className="text-base font-medium text-zinc-800 py-1">
+              Workflow
+            </a>
+            <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-base font-medium text-zinc-800 py-1">
               Features
             </a>
-            <a href="#resources" className="text-base font-medium text-zinc-800 py-1">
+            <a href="#resources" onClick={(e) => scrollToSection(e, 'resources')} className="text-base font-medium text-zinc-800 py-1">
               Resources
             </a>
             <hr className="border-zinc-200 my-1" />
@@ -104,7 +138,7 @@ export function Navbar() {
                 Sign in
               </a>
               <a href="/dashboard" className="w-full bg-zinc-900 text-white rounded-full py-3 font-medium flex items-center justify-center gap-2 block">
-                <span>Get started</span>
+                <span>Go to Dashboard</span>
                 <ArrowRight className="w-4 h-4" />
               </a>
             </div>
