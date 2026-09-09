@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { useUIStore } from '@/store/useUIStore';
-import { useTaskStore } from '@/store/useTaskStore';
-import { useWorkspaceStore } from '@/store/useWorkspaceStore';
-import { useProjectStore } from '@/store/useProjectStore';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useTaskStore } from '@/features/tasks/store/useTaskStore';
+import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore';
+import { useProjectStore } from '@/features/projects/store/useProjectStore';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import {
   Plus,
   MoreHorizontal,
@@ -65,28 +65,29 @@ export function CalendarView() {
   ];
 
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const workspaceMembers = useWorkspaceStore((s) => s.members);
   const tasks = useTaskStore((s) => s.tasks);
   const projects = useProjectStore((s) => s.projects);
-  const members = useAuthStore((s) => s.members);
   const setSelectedTaskIdForModal = useUIStore((s) => s.setSelectedTaskIdForModal);
 
-  const workspaceTasks = tasks.filter(t => t.workspaceId === activeWorkspaceId && t.status !== 'completed');
+  const workspaceTasks = tasks.filter(t => (((t as any).workspaceId || (t as any).workspace_id) === activeWorkspaceId) && (t.status as string) !== 'done' && (t.status as string) !== 'completed');
 
   // Dynamically map tasks to calendar events
   const events: CalendarEvent[] = workspaceTasks.map((task, idx) => {
-    const project = projects.find(p => p.id === task.projectId);
-    const assignee = members.find(m => m.id === task.assigneeId);
+    const project = projects.find(p => p.id === (task as any).projectId || p.id === task.project_id);
+    const assignee = workspaceMembers.find(m => m.user_id === task.assignee_id || m.id === (task as any).assigneeId)?.profile;
     
     // Pseudo-random but consistent time scheduling based on task ID length
     const startHour = 9 + ((task.id.length + idx) % 7); // Distribute between 9 AM and 4 PM
     
+    const taskDueDate = (task as any).dueDate || task.due_date || '';
     let dayIndex = 0;
-    if (task.dueDate === 'Today') {
+    if (taskDueDate === 'Today') {
       dayIndex = 1;
-    } else if (task.dueDate === 'Tomorrow') {
+    } else if (taskDueDate === 'Tomorrow') {
       dayIndex = 2;
     } else {
-      const parsedDate = new Date(task.dueDate);
+      const parsedDate = new Date(taskDueDate);
       if (!isNaN(parsedDate.getTime())) {
         dayIndex = parsedDate.getDay() === 0 ? 6 : parsedDate.getDay() - 1;
       }
@@ -117,7 +118,7 @@ export function CalendarView() {
       durationHours: 1,
       cardStyle,
       badgeColor,
-      assignees: assignee ? [assignee.avatar] : []
+      assignees: assignee ? [assignee.avatar_url || (assignee as any).avatar] : []
     };
   });
 

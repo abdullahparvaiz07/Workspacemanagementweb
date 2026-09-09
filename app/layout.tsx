@@ -40,7 +40,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <ReduxProvider>
             <AppPreloader />
-            <Suspense fallback={null}> 
+            <Suspense fallback={null}>                                             
               <NavigationProgress />
             </Suspense>
             {children}

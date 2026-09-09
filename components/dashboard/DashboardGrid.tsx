@@ -1,17 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTaskStore } from '@/store/useTaskStore';
-import { useProjectStore } from '@/store/useProjectStore';
+import { useTaskStore } from '@/features/tasks/store/useTaskStore';
+import { useProjectStore } from '@/features/projects/store/useProjectStore';
 import { useActivityStore } from '@/store/useActivityStore';
-import { useAuthStore } from '@/store/useAuthStore';
-import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore';
 import { useUIStore } from '@/store/useUIStore';
 import { taskService } from '@/services/task.service';
 import { activityService } from '@/services/activity.service';
 import { toast } from 'sonner';
-import { ArrowRight, Folder, CheckCircle2, Clock } from 'lucide-react';
+import { ArrowRight, Folder, CheckCircle2, Clock, Plus } from 'lucide-react';
 
 function formatTimestamp(isoString: string): string {
   if (!isoString) return 'Just now';
@@ -32,15 +32,20 @@ export function DashboardGrid() {
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
   const setActiveTab = useWorkspaceStore((s) => s.setActiveTab);
   const setSelectedProjectFilter = useWorkspaceStore((s) => s.setSelectedProjectFilter);
-  const currentUser = useAuthStore((s) => s.currentUser);
-  const members = useAuthStore((s) => s.members);
+  const currentUser = useAuthStore((s) => s.user);
 
-  // Entity Stores
   const tasks = useTaskStore((s) => s.tasks);
-  const updateTaskStatusInStore = useTaskStore((s) => s.updateTaskStatus);
+  const updateTaskStatus = useTaskStore((s) => s.updateTaskStatus);
   const projects = useProjectStore((s) => s.projects);
+  const loadProjects = useProjectStore((s) => s.loadProjects);
   const activities = useActivityStore((s) => s.activities);
   const logActivityInStore = useActivityStore((s) => s.logActivity);
+
+  useEffect(() => {
+    if (activeWorkspaceId) {
+      loadProjects(activeWorkspaceId);
+    }
+  }, [activeWorkspaceId, loadProjects]);
 
   // UI Modal Stores
   const setCreateTaskModalOpen = useUIStore((s) => s.setCreateTaskModalOpen);
@@ -48,12 +53,13 @@ export function DashboardGrid() {
   const setSelectedTaskIdForModal = useUIStore((s) => s.setSelectedTaskIdForModal);
 
   // 1. TODAY'S TASKS DYNAMIC DATA
-  const workspaceTasks = tasks.filter((t) => t.workspaceId === activeWorkspaceId);
+  const workspaceTasks = tasks.filter((t) => ((t as any).workspaceId || (t as any).workspace_id) === activeWorkspaceId);
   
   // Filter for currentUser, status != completed, and assigned/due today
   const todayTasks = workspaceTasks.filter((t) => {
-    if (t.status === 'completed') return false;
-    const isAssignedToUser = !t.assigneeId || t.assigneeId === currentUser?.id || (t as any).assignee?.id === currentUser?.id;
+    if ((t.status as string) === 'completed' || (t.status as string) === 'done') return false;
+    const assigneeId = (t as any).assigneeId || t.assignee_id;
+    const isAssignedToUser = !assigneeId || assigneeId === currentUser?.id || (t as any).assignee?.id === currentUser?.id;
     return isAssignedToUser;
   });
 
@@ -62,15 +68,15 @@ export function DashboardGrid() {
     
     // 1. Update task completion in service & store
     taskService.updateTaskStatus(taskId, 'completed');
-    updateTaskStatusInStore(taskId, 'completed');
+    updateTaskStatus(taskId, 'done');
 
     // 2. Create activity event
-    if (currentUser) {
+    if (currentUser && activeWorkspaceId) {
       activityService.logActivity({
         workspaceId: activeWorkspaceId,
         userId: currentUser.id,
-        userName: currentUser.name,
-        userAvatar: currentUser.avatar,
+        userName: currentUser.email || 'User',
+        userAvatar: '',
         action: `completed task "${taskTitle}"`,
         entityType: 'task',
         entityName: taskTitle,
@@ -78,8 +84,8 @@ export function DashboardGrid() {
       logActivityInStore(
         activeWorkspaceId,
         currentUser.id,
-        currentUser.name,
-        currentUser.avatar,
+        currentUser.email || 'User',
+        '',
         `completed task "${taskTitle}"`,
         'task',
         taskTitle
@@ -91,7 +97,7 @@ export function DashboardGrid() {
   };
 
   // 2. YOUR PROJECTS DYNAMIC DATA
-  const workspaceProjects = projects.filter((p) => p.workspaceId === activeWorkspaceId);
+  const workspaceProjects = projects.filter((p) => p.workspace_id === activeWorkspaceId || (p as any).workspaceId === activeWorkspaceId);
 
   const handleProjectClick = (projectId: string) => {
     setSelectedProjectFilter(projectId);
@@ -135,8 +141,8 @@ export function DashboardGrid() {
               </div>
             ) : (
               todayTasks.slice(0, 4).map((task) => {
-                const proj = projects.find((p) => p.id === task.projectId);
-                const assignedUser = members.find((m) => m.id === task.assigneeId) || currentUser;
+                const proj = projects.find((p) => p.id === (task as any).projectId || p.id === task.project_id);
+                const assignedUser = (task as any).assignee || (currentUser ? { name: currentUser.email || 'User', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' } : null);
 
                 return (
                   <div
@@ -166,7 +172,7 @@ export function DashboardGrid() {
 
                     <div className="flex items-center gap-2.5 flex-shrink-0 ml-2">
                       <span className="text-[11px] font-medium text-zinc-400 whitespace-nowrap">
-                        {task.dueDate || 'Today'}
+                        {(task as any).dueDate || (task as any).due_date || 'Today'}
                       </span>
                       {assignedUser && (
                         <img
@@ -216,8 +222,8 @@ export function DashboardGrid() {
               </div>
             ) : (
               workspaceProjects.map((proj) => {
-                const projectTasks = tasks.filter((t) => t.projectId === proj.id);
-                const completedTasks = projectTasks.filter((t) => t.status === 'completed').length;
+                const projectTasks = tasks.filter((t) => (t as any).projectId === proj.id || t.project_id === proj.id);
+                const completedTasks = projectTasks.filter((t) => (t.status as string) === 'completed' || (t.status as string) === 'done').length;
                 const progress = projectTasks.length > 0 ? Math.round((completedTasks / projectTasks.length) * 100) : 0;
 
                 return (
@@ -246,7 +252,7 @@ export function DashboardGrid() {
                       </div>
 
                       <div className="flex items-center justify-between text-[11px] text-zinc-400 font-medium mb-1.5 min-w-0">
-                        <span className="truncate flex-1 min-w-0 mr-2">{proj.category}</span>
+                        <span className="truncate flex-1 min-w-0 mr-2">{(proj as any).category || proj.description || 'Project'}</span>
                         <span className="whitespace-nowrap flex-shrink-0">{projectTasks.length} tasks</span>
                       </div>
 

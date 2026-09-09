@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { useTaskStore } from '@/store/useTaskStore';
-import { useProjectStore } from '@/store/useProjectStore';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useProjectStore } from '@/features/projects/store/useProjectStore';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
-import { useWorkspaceStore } from '@/store/useWorkspaceStore';
+import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore';
 import { taskService } from '@/services/task.service';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
@@ -35,8 +35,8 @@ export function TasksView() {
   const bulkDeleteTasksInStore = useTaskStore((s) => s.bulkDeleteTasks);
   const bulkUpdateTaskStatusInStore = useTaskStore((s) => s.bulkUpdateTaskStatus);
   const projects = useProjectStore((s) => s.projects);
-  const members = useAuthStore((s) => s.members);
-  const currentUser = useAuthStore((s) => s.currentUser);
+  const workspaceMembers = useWorkspaceStore((s) => s.members);
+  const currentUser = useAuthStore((s) => s.user);
   const setCreateTaskModalOpen = useUIStore((s) => s.setCreateTaskModalOpen);
   const setSelectedTaskIdForModal = useUIStore((s) => s.setSelectedTaskIdForModal);
 
@@ -254,7 +254,7 @@ export function TasksView() {
             >
               <option value="All">All Projects</option>
               {projects
-                .filter((p) => p.workspaceId === activeWorkspaceId)
+                .filter((p) => p.workspace_id === activeWorkspaceId || (p as any).workspaceId === activeWorkspaceId)
                 .map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -271,9 +271,9 @@ export function TasksView() {
               className="appearance-none bg-white border border-zinc-200/90 rounded-full px-4 py-2 pr-8 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-all cursor-pointer shadow-2xs focus:outline-none"
             >
               <option value="All">All Assignees</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
+              {workspaceMembers.map((m) => (
+                <option key={m.id} value={m.user_id}>
+                  {m.profile?.full_name || 'Member'}
                 </option>
               ))}
             </select>
@@ -419,15 +419,16 @@ export function TasksView() {
 
                       <td className="py-4 px-4 whitespace-nowrap">
                         {(() => {
-                          const assignedMember = members.find((m) => m.id === task.assigneeId) || (task as any).assignee;
+                          const member = workspaceMembers.find((m) => m.user_id === task.assigneeId || m.id === task.assigneeId);
+                          const assignedMember = member?.profile ? { name: member.profile.full_name, avatar: member.profile.avatar_url } : (task as any).assignee;
                           return assignedMember ? (
                             <div className="flex items-center gap-2">
                               <img
-                                src={assignedMember.avatar}
-                                alt={assignedMember.name}
+                                src={assignedMember.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
+                                alt={assignedMember.name || 'Member'}
                                 className="w-6 h-6 rounded-full object-cover"
                               />
-                              <span className="text-zinc-700 font-medium">{assignedMember.name}</span>
+                              <span className="text-zinc-700 font-medium">{assignedMember.name || 'Member'}</span>
                             </div>
                           ) : null;
                         })()}
