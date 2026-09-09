@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
@@ -10,13 +10,23 @@ import Image from 'next/image';
 
 export function LoginPage() {
   const router = useRouter();
-  const { login, signup } = useAuthStore();
+  const { login, signup, user: currentUser, loading: authLoading, refreshUser } = useAuthStore();
   const [isSignUp, setIsSignUp] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
+  useEffect(() => {
+    if (!authLoading && currentUser) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, currentUser, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

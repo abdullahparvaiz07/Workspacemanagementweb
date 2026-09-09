@@ -7,12 +7,22 @@ import { useUIStore } from '@/store/useUIStore';
 import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore';
 import { Search, Bell, ChevronDown, LogOut, Plus, CheckSquare, FolderKanban, Building2, Menu, Check } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ThemeSwitcher } from '@/components/ui/ThemeSwitcher';
 
 export function DashboardHeader() {
+  const router = useRouter();
   const currentUser = useAuthStore((s) => s.user);
   const currentProfile = useAuthStore((s) => s.profile);
   const logout = useAuthStore((s) => s.logout);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      router.push('/login');
+    }
+  };
   
   const notifications = useNotificationStore((s) => s.notifications);
   const loadNotifications = useNotificationStore((s) => s.loadNotifications);
@@ -228,8 +238,8 @@ export function DashboardHeader() {
 
               <div className="pt-1 mt-1">
                 <button
-                  onClick={() => logout()}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-rose-600 hover:bg-rose-50 font-medium transition-colors"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-rose-600 hover:bg-rose-50 font-medium transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" /> Sign Out
                 </button>

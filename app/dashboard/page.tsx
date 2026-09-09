@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
@@ -30,16 +31,30 @@ import TaskDetailModal from '@/components/dashboard/TaskDetailModal';
 import CreateWorkspaceModal from '@/components/dashboard/CreateWorkspaceModal';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const activeTabRaw = useWorkspaceStore((s) => s.activeTab);
   const setActiveTab = useWorkspaceStore((s) => s.setActiveTab);
   const activeTab = (activeTabRaw || 'overview').toLowerCase();
 
   const currentUser = useAuthStore((s) => s.user);
   const currentProfile = useAuthStore((s) => s.profile);
+  const authLoading = useAuthStore((s) => s.loading);
+  const refreshUser = useAuthStore((s) => s.refreshUser);
+
   const loadWorkspaces = useWorkspaceStore((s) => s.loadWorkspaces);
   const workspaces = useWorkspaceStore((s) => s.workspaces);
-  const loading = useWorkspaceStore((s) => s.loading);
+  const workspaceLoading = useWorkspaceStore((s) => s.loading);
   const setCreateWorkspaceModalOpen = useUIStore((s) => s.setCreateWorkspaceModalOpen);
+
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
+  useEffect(() => {
+    if (!authLoading && !currentUser) {
+      router.push('/login');
+    }
+  }, [authLoading, currentUser, router]);
 
   useEffect(() => {
     if (currentUser) {
@@ -47,8 +62,20 @@ export default function DashboardPage() {
     }
   }, [currentUser, loadWorkspaces]);
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#FAF7F2] dark:bg-zinc-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-amber-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return null;
+  }
+
   // Show welcome screen if no workspaces exist
-  if (!loading && workspaces.length === 0 && currentUser) {
+  if (!workspaceLoading && workspaces.length === 0 && currentUser) {
     const firstName = currentProfile?.full_name?.split(' ')[0] || currentUser.email?.split('@')[0] || '';
     return (
       <div className="min-h-screen bg-[#FAF7F2] dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 flex flex-col items-center justify-center selection:bg-amber-200 font-sans">

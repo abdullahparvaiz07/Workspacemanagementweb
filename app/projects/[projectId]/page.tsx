@@ -25,9 +25,21 @@ export default function ProjectPage() {
   const workspaceMembers = useWorkspaceStore((s) => s.members);
   const tasks = useTaskStore((s) => s.tasks);
   const currentUser = useAuthStore((s) => s.user);
+  const authLoading = useAuthStore((s) => s.loading);
+  const refreshUser = useAuthStore((s) => s.refreshUser);
 
   const [selectedMember, setSelectedMember] = useState('');
   const [selectedRole, setSelectedRole] = useState<'admin' | 'member' | 'viewer'>('member');
+
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
+  useEffect(() => {
+    if (!authLoading && !currentUser) {
+      router.push('/login');
+    }
+  }, [authLoading, currentUser, router]);
 
   useEffect(() => {
     if (projectId) {
