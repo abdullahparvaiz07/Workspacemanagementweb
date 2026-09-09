@@ -17,7 +17,13 @@ class StorageService {
         this.saveDatabase(initialDatabase);
         return initialDatabase;
       }
-      return JSON.parse(data) as DatabaseSchema;
+      const parsed = JSON.parse(data) as DatabaseSchema;
+      if (parsed.notifications) {
+        parsed.notifications = parsed.notifications.filter(
+          (n) => n.id !== 'notif-1' && n.id !== 'notif-2' && n.id !== 'notif-3'
+        );
+      }
+      return parsed;
     } catch (error) {
       console.error('Failed to read database from LocalStorage:', error);
       return initialDatabase;

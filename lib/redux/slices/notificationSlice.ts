@@ -15,32 +15,7 @@ interface NotificationState {
   notifications: NotificationItem[];
 }
 
-const initialNotifications: NotificationItem[] = [
-  {
-    id: 'notif-1',
-    title: 'Task Assigned',
-    message: 'Sarah Chen assigned you to "Design System Update"',
-    read: false,
-    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    type: 'assignment',
-  },
-  {
-    id: 'notif-2',
-    title: 'New Comment',
-    message: 'David Kim mentioned you in "Mobile App Onboarding"',
-    read: false,
-    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    type: 'mention',
-  },
-  {
-    id: 'notif-3',
-    title: 'Project Update',
-    message: 'Q3 Product Redesign was moved to In Progress',
-    read: true,
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-    type: 'info',
-  },
-];
+const initialNotifications: NotificationItem[] = [];
 
 const initialState: NotificationState = {
   notifications: initialNotifications,

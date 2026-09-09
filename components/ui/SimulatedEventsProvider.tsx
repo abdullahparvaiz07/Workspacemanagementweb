@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 export default function SimulatedEventsProvider() {
-  useSimulatedEvents(true);
+  useSimulatedEvents(false);
   
   const undo = useTaskStore(s => s.undo);
   const redo = useTaskStore(s => s.redo);

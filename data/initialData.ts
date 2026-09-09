@@ -235,26 +235,7 @@ export const initialDatabase: DatabaseSchema = {
       timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
     },
   ],
-  notifications: [
-    {
-      id: 'notif-1',
-      userId: 'u-1',
-      title: 'Task Assigned',
-      message: 'Sarah Chen assigned you to "Design System Tokens Update"',
-      read: false,
-      type: 'assignment',
-      timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    },
-    {
-      id: 'notif-2',
-      userId: 'u-1',
-      title: 'New Comment',
-      message: 'Karan Mehta mentioned you in "Mobile Navigation Drawer"',
-      read: false,
-      type: 'mention',
-      timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    },
-  ],
+  notifications: [],
   supportTickets: [
     {
       id: 'sup-1',

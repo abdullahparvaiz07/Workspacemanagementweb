@@ -41,7 +41,7 @@ const MOCK_EVENTS = [
   }
 ];
 
-export function useSimulatedEvents(enabled: boolean = true) {
+export function useSimulatedEvents(enabled: boolean = false) {
   const currentUser = useAuthStore(s => s.currentUser);
   const activeWorkspaceId = useWorkspaceStore(s => s.activeWorkspaceId);
   const members = useAuthStore((s) => s.members);
