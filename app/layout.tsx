@@ -29,12 +29,20 @@ export const metadata: Metadata = {
   },
 };
 
+import { Suspense } from 'react';
+import { AppPreloader } from '@/components/ui/AppPreloader';
+import { NavigationProgress } from '@/components/ui/NavigationProgress';
+
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <ReduxProvider>
+            <AppPreloader />
+            <Suspense fallback={null}> 
+              <NavigationProgress />
+            </Suspense>
             {children}
             <ToastContainer />
             <Toaster position="bottom-right" richColors />
