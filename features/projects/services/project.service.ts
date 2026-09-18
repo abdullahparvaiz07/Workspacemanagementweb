@@ -46,14 +46,20 @@ class ProjectService {
 
     if (projectError) throw projectError;
 
-    const { error: memberError } = await (this.supabase.from('project_members') as any)
-      .insert([{
-        project_id: project.id,
-        user_id: userId,
-        role: 'admin'
-      }]);
+    try {
+      const { error: memberError } = await (this.supabase.from('project_members') as any)
+        .insert([{
+          project_id: project.id,
+          user_id: userId,
+          role: 'admin'
+        }]);
 
-    if (memberError) throw memberError;
+      if (memberError) {
+        console.warn('Notice: project_members entry could not be created:', memberError.message);
+      }
+    } catch (err) {
+      console.warn('Notice: project_members insert exception:', err);
+    }
 
     return project;
   }

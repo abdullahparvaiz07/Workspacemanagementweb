@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore';
+import { useProjectStore } from '@/features/projects/store/useProjectStore';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
@@ -43,8 +44,10 @@ export default function DashboardPage() {
 
   const loadWorkspaces = useWorkspaceStore((s) => s.loadWorkspaces);
   const workspaces = useWorkspaceStore((s) => s.workspaces);
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
   const workspaceLoading = useWorkspaceStore((s) => s.loading);
   const setCreateWorkspaceModalOpen = useUIStore((s) => s.setCreateWorkspaceModalOpen);
+  const loadProjects = useProjectStore((s) => s.loadProjects);
 
   useEffect(() => {
     refreshUser();
@@ -61,6 +64,12 @@ export default function DashboardPage() {
       loadWorkspaces(currentUser.id);
     }
   }, [currentUser, loadWorkspaces]);
+
+  useEffect(() => {
+    if (activeWorkspaceId) {
+      loadProjects(activeWorkspaceId);
+    }
+  }, [activeWorkspaceId, loadProjects]);
 
   if (authLoading) {
     return (

@@ -6,7 +6,7 @@ import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore
 import { useProjectStore } from '@/features/projects/store/useProjectStore';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { useActivityStore } from '@/store/useActivityStore';
-import { useTaskStore } from '@/store/useTaskStore';
+import { useTaskStore } from '@/features/tasks/store/useTaskStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { X, FolderPlus } from 'lucide-react';
@@ -19,6 +19,7 @@ export default function CreateProjectModal() {
   const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
   const currentUser = useAuthStore((state) => state.user);
   const createProject = useProjectStore((state) => state.createProject);
+  const loadProjects = useProjectStore((state) => state.loadProjects);
   const logActivity = useActivityStore((state) => state.logActivity);
   const createTask = useTaskStore((state) => state.createTask);
   const router = useRouter();
@@ -43,28 +44,83 @@ export default function CreateProjectModal() {
     { label: 'Stone', value: '#57534E' },
   ];
 
-  const applyTemplateTasks = (projectId: string, templateType: string) => {
-    if (templateType === 'website') {
-      const tasks = [
-        { title: 'Design Homepage Mockups', description: 'Create Figma designs for the new homepage', priority: 'high' as const },
-        { title: 'Setup Next.js Project', description: 'Initialize the repo with Next.js and Tailwind', priority: 'high' as const },
-        { title: 'Write Copywriting', description: 'Draft the marketing copy for all pages', priority: 'medium' as const },
-        { title: 'QA & Testing', description: 'Test on mobile and desktop browsers', priority: 'medium' as const },
-      ];
-      tasks.forEach(t => {
-        createTask({
-          workspaceId: activeWorkspaceId as string,
-          projectId,
+  const templateConfigs: Record<string, { name: string; category: string; description: string; tasks: { title: string; description: string; priority: 'low' | 'medium' | 'high' | 'urgent' }[] }> = {
+    website: {
+      name: 'Website Launch & Marketing',
+      category: 'Web Development',
+      description: 'End-to-end planning, copywriting, design, and deployment of modern web experience.',
+      tasks: [
+        { title: 'Design Homepage & Responsive Mockups', description: 'Create high-fidelity designs for desktop and mobile viewports', priority: 'high' },
+        { title: 'Setup Next.js & Styling Infrastructure', description: 'Initialize repository with Next.js 16 and Tailwind CSS', priority: 'high' },
+        { title: 'Write Landing Page Marketing Copy', description: 'Draft compelling headline copy, feature bullet points, and CTA labels', priority: 'medium' },
+        { title: 'QA & Cross-Browser Testing', description: 'Verify responsiveness, accessibility, and form validation across browsers', priority: 'medium' },
+      ],
+    },
+    sprint: {
+      name: 'Engineering Sprint Q4',
+      category: 'Software Engineering',
+      description: 'Feature development, database schema migration, and staging verification.',
+      tasks: [
+        { title: 'Define API Contracts & Database Schema', description: 'Finalize TypeScript interfaces and PostgreSQL migration scripts', priority: 'urgent' },
+        { title: 'Implement Core Feature Endpoints', description: 'Build backend handlers with authentication and error handling', priority: 'high' },
+        { title: 'Connect Frontend State & Realtime Listeners', description: 'Wire up Zustand stores with WebSocket sync and optimistic updates', priority: 'high' },
+        { title: 'Unit Tests & Code Review', description: 'Run test suite and perform peer review before merging to main branch', priority: 'medium' },
+      ],
+    },
+    marketing: {
+      name: 'Q4 Product Launch Campaign',
+      category: 'Marketing',
+      description: 'Multi-channel marketing initiative including email sequences and social announcements.',
+      tasks: [
+        { title: 'Campaign Strategy & Audience Segmentation', description: 'Identify target persona cohorts and key value propositions', priority: 'high' },
+        { title: 'Design Social Media & Ad Creative Assets', description: 'Create visual banners, promo motion graphics, and video teasers', priority: 'medium' },
+        { title: 'Draft Product Announcement Blog Post', description: 'Write in-depth walkthrough of new features and customer benefits', priority: 'medium' },
+      ],
+    },
+    design: {
+      name: 'Design System & UI Kit',
+      category: 'Product & Design',
+      description: 'Unified color palettes, typography scales, component library, and Figma tokens.',
+      tasks: [
+        { title: 'Audit Existing Component Inconsistencies', description: 'Catalog all buttons, inputs, modals, and colors across the app', priority: 'high' },
+        { title: 'Establish Color & Typography Tokens', description: 'Define primary, neutral, warning, and dark mode palette variables', priority: 'high' },
+        { title: 'Build Reusable Component Specs', description: 'Document state variants (hover, active, disabled, focus) in Figma', priority: 'medium' },
+      ],
+    },
+  };
+
+  const handleTemplateChange = (newTemplate: string) => {
+    setTemplate(newTemplate);
+    if (newTemplate !== 'blank' && templateConfigs[newTemplate]) {
+      const cfg = templateConfigs[newTemplate];
+      if (!name || Object.values(templateConfigs).some(t => t.name === name)) {
+        setName(cfg.name);
+      }
+      setCategory(cfg.category);
+      if (!description || Object.values(templateConfigs).some(t => t.description === description)) {
+        setDescription(cfg.description);
+      }
+    }
+  };
+
+  const applyTemplateTasks = async (projectId: string, templateType: string) => {
+    const cfg = templateConfigs[templateType];
+    if (!cfg || !cfg.tasks) return;
+
+    for (const t of cfg.tasks) {
+      try {
+        await createTask({
+          project_id: projectId,
           title: t.title,
           description: t.description,
           priority: t.priority,
           status: 'todo',
-          assigneeId: currentUser?.id,
-          subtasks: [],
-          tags: [],
-          dueDate: '',
+          assignee_id: currentUser?.id || null,
+          created_by: currentUser?.id,
         });
-      });
+      } catch (e) {
+        console.warn('Failed to insert template task:', e);
+      }
     }
   };
 
@@ -84,12 +140,16 @@ export default function CreateProjectModal() {
 
     setLoading(true);
     try {
-      // Create project in Supabase (we pack category into description or rely on icon later, for now we just pass it to the color or drop it since our schema only has name/description/color/icon). We will append category to description for now.
       const fullDesc = description ? `${description}\n\nCategory: ${category}` : `Category: ${category}`;
-      const newWs = await createProject(activeWorkspaceId, name.trim(), fullDesc, color, currentUser.id);
+      const newProject = await createProject(activeWorkspaceId, name.trim(), fullDesc, color, currentUser.id);
 
-      // Generate template tasks if selected
-      applyTemplateTasks(newWs.id, template);
+      // Generate template tasks if a template was selected
+      if (template !== 'blank') {
+        await applyTemplateTasks(newProject.id, template);
+      }
+
+      // Refresh projects in workspace store
+      await loadProjects(activeWorkspaceId);
 
       logActivity(
         activeWorkspaceId,
@@ -106,9 +166,10 @@ export default function CreateProjectModal() {
 
       setName('');
       setDescription('');
+      setTemplate('blank');
       
-      // Navigate to new project
-      router.push(`/projects/${newWs.id}`);
+      // Navigate to new project page
+      router.push(`/projects/${newProject.id}`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to create project');
     } finally {
@@ -153,11 +214,14 @@ export default function CreateProjectModal() {
             </label>
             <select
               value={template}
-              onChange={(e) => setTemplate(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-stone-800 bg-white"
+              onChange={(e) => handleTemplateChange(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-stone-800 bg-white cursor-pointer"
             >
               <option value="blank">Blank Project</option>
-              <option value="website">Website Launch (4 tasks)</option>
+              <option value="website">🚀 Website Launch (4 tasks)</option>
+              <option value="sprint">⚡ Engineering Sprint (4 tasks)</option>
+              <option value="marketing">📣 Marketing Campaign (3 tasks)</option>
+              <option value="design">🎨 Design System & UI (3 tasks)</option>
             </select>
           </div>
 

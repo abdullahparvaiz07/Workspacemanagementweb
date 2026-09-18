@@ -20,6 +20,9 @@ export default function CreateTaskModal() {
   const activeWorkspaceId = useWorkspaceStore((state) => state.activeWorkspaceId);
   const selectedProjectFilter = useWorkspaceStore((state) => state.selectedProjectFilter);
   const projects = useProjectStore((state) => state.projects);
+  const loadProjects = useProjectStore((state) => state.loadProjects);
+  const projectsLoading = useProjectStore((state) => state.loading);
+  const setCreateProjectModalOpen = useUIStore((state) => state.setCreateProjectModalOpen);
   const workspaceMembers = useWorkspaceStore((state) => state.members);
   const currentUser = useAuthStore((state) => state.user);
 
@@ -40,11 +43,24 @@ export default function CreateTaskModal() {
   const [subtasks, setSubtasks] = useState<{ id: string; title: string; completed: boolean }[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Load projects whenever the modal opens or active workspace changes
+  useEffect(() => {
+    if (isOpen && activeWorkspaceId) {
+      loadProjects(activeWorkspaceId);
+    }
+  }, [isOpen, activeWorkspaceId, loadProjects]);
+
+  // Sync default project and assignee
   useEffect(() => {
     if (isOpen) {
       setStatus(createTaskDefaultStatus || 'todo');
-      if (!projectId && projects.length > 0) {
-        setProjectId(selectedProjectFilter || projects[0].id);
+      if (projects.length > 0) {
+        if (!projectId || !projects.some((p) => p.id === projectId)) {
+          const match = projects.find((p) => p.id === selectedProjectFilter);
+          setProjectId(match ? match.id : projects[0].id);
+        }
+      } else {
+        setProjectId('');
       }
       if (!assigneeId && currentUser) {
         setAssigneeId(currentUser.id);
@@ -181,20 +197,49 @@ export default function CreateTaskModal() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">
-                Project
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider">
+                  Project *
+                </label>
+                {projects.length === 0 && !projectsLoading && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreateTaskModalOpen(false);
+                      setCreateProjectModalOpen(true);
+                    }}
+                    className="text-[11px] font-semibold text-amber-700 hover:text-amber-800 underline cursor-pointer"
+                  >
+                    + New Project
+                  </button>
+                )}
+              </div>
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-stone-800 bg-white"
+                required
               >
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
+                {projectsLoading ? (
+                  <option value="" disabled>Loading projects...</option>
+                ) : projects.length === 0 ? (
+                  <option value="" disabled>No projects found in this workspace</option>
+                ) : (
+                  <>
+                    <option value="" disabled>Select a project...</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
+              {projects.length === 0 && !projectsLoading && (
+                <p className="text-[11px] text-amber-600 mt-1">
+                  Create a project first to add tasks to it.
+                </p>
+              )}
             </div>
 
             <div>
