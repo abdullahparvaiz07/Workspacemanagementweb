@@ -20,6 +20,8 @@ interface TaskStore {
   bulkDeleteTasks: (ids: string[]) => void;
   bulkUpdateStatus: (ids: string[], status: TaskStatus) => void;
   bulkUpdateTaskStatus: (ids: string[], status: TaskStatus) => void;
+  convertSubtaskToTask: (parentTaskId: string, subtaskId: string) => Task | null;
+  convertTaskToSubtask: (sourceTaskId: string, targetTaskId: string) => boolean;
   
   addComment: (taskId: string, commentData: Omit<Comment, 'id' | 'createdAt'>) => void;
   editComment: (taskId: string, commentId: string, text: string) => void;
@@ -133,6 +135,20 @@ export const useTaskStore = create<TaskStore>((set, get) => {
       saveSnapshot();
       const updated = taskService.bulkUpdateTaskStatus(ids, status);
       set({ tasks: updated });
+    },
+
+    convertSubtaskToTask: (parentTaskId, subtaskId) => {
+      saveSnapshot();
+      const newTask = taskService.convertSubtaskToTask(parentTaskId, subtaskId);
+      set({ tasks: taskService.getTasks() });
+      return newTask;
+    },
+
+    convertTaskToSubtask: (sourceTaskId, targetTaskId) => {
+      saveSnapshot();
+      const success = taskService.convertTaskToSubtask(sourceTaskId, targetTaskId);
+      set({ tasks: taskService.getTasks() });
+      return success;
     },
 
     addComment: (taskId, commentData) => {

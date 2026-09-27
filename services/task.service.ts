@@ -187,6 +187,52 @@ class TaskService {
     );
   }
 
+  public convertSubtaskToTask(parentTaskId: string, subtaskId: string): Task | null {
+    const tasks = storageService.getTable('tasks');
+    const parent = tasks.find((t) => t.id === parentTaskId);
+    if (!parent) return null;
+
+    const subtask = parent.subtasks.find((st) => st.id === subtaskId);
+    if (!subtask) return null;
+
+    // 1. Remove subtask from parent
+    this.deleteSubtask(parentTaskId, subtaskId);
+
+    // 2. Create full task
+    const newTask: Task = {
+      id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      workspaceId: parent.workspaceId,
+      projectId: parent.projectId,
+      title: subtask.title,
+      description: `Converted from subtask of "${parent.title}"`,
+      status: subtask.completed ? 'completed' : 'todo',
+      priority: parent.priority || 'medium',
+      dueDate: parent.dueDate || new Date().toISOString().split('T')[0],
+      assigneeId: parent.assigneeId,
+      tags: parent.tags ? [...parent.tags] : [],
+      subtasks: [],
+      commentsCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    storageService.updateTable('tasks', (list) => [newTask, ...list]);
+    return newTask;
+  }
+
+  public convertTaskToSubtask(sourceTaskId: string, targetTaskId: string): boolean {
+    const tasks = storageService.getTable('tasks');
+    const source = tasks.find((t) => t.id === sourceTaskId);
+    const target = tasks.find((t) => t.id === targetTaskId);
+    if (!source || !target || sourceTaskId === targetTaskId) return false;
+
+    // 1. Add as subtask to target
+    this.addSubtask(targetTaskId, source.title);
+
+    // 2. Delete source task
+    this.deleteTask(sourceTaskId);
+    return true;
+  }
+
   public restoreTasks(tasks: Task[]): Task[] {
     return storageService.updateTable('tasks', () => tasks);
   }

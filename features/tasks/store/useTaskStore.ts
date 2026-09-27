@@ -21,6 +21,8 @@ export interface TaskState {
   createSubtask: (taskId: string, title: string) => Promise<void>;
   toggleSubtask: (taskId: string, subtaskId: string, completed: boolean) => Promise<void>;
   deleteSubtask: (taskId: string, subtaskId: string) => Promise<void>;
+  convertSubtaskToTask: (parentTaskId: string, subtaskId: string) => Promise<void>;
+  convertTaskToSubtask: (sourceTaskId: string, targetTaskId: string) => Promise<void>;
 
   addComment: (taskId: string, userId: string, content: string) => Promise<void>;
   deleteComment: (taskId: string, commentId: string) => Promise<void>;
@@ -315,6 +317,48 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     } catch (error) {
       toast.error('Failed to delete subtask');
       throw error;
+    }
+  },
+
+  convertSubtaskToTask: async (parentTaskId, subtaskId) => {
+    try {
+      const parent = get().tasks.find(t => t.id === parentTaskId);
+      const subtask = parent?.subtasks.find(st => st.id === subtaskId);
+      if (!parent || !subtask) return;
+
+      // Create new task
+      const newTask = await get().createTask({
+        title: subtask.title,
+        description: `Promoted from subtask of "${parent.title}"`,
+        project_id: parent.project_id,
+        status: subtask.completed ? 'done' : 'todo',
+        priority: parent.priority || 'medium',
+        due_date: parent.due_date,
+        assignee_id: parent.assignee_id,
+      });
+
+      // Remove subtask from parent
+      await get().deleteSubtask(parentTaskId, subtaskId);
+      toast.success('Subtask converted to full task.');
+    } catch (error) {
+      toast.error('Failed to convert subtask to task.');
+    }
+  },
+
+  convertTaskToSubtask: async (sourceTaskId, targetTaskId) => {
+    try {
+      const source = get().tasks.find(t => t.id === sourceTaskId);
+      const target = get().tasks.find(t => t.id === targetTaskId);
+      if (!source || !target || sourceTaskId === targetTaskId) return;
+
+      // Add as subtask to target
+      await get().createSubtask(targetTaskId, source.title);
+
+      // Delete source task
+      await get().deleteTask(sourceTaskId);
+      toast.success(`Task converted to subtask of "${target.title}".`);
+    } catch (error) {
+      toast.error('Failed to convert task to subtask.');
     }
   },
 

@@ -5,9 +5,10 @@ import { useWorkspaceStore } from '@/features/workspaces/store/useWorkspaceStore
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
-import { User, Camera, Building2, Save, Download, Upload, Check, RefreshCw, Sparkles, ShieldCheck } from 'lucide-react';
+import { User, Camera, Building2, Save, Download, Upload, Check, RefreshCw, Sparkles, ShieldCheck, Lock } from 'lucide-react';
 import { storageService } from '@/services/storage.service';
 import { DatabaseSchema } from '@/types';
+import { AccessDenied } from '@/components/ui/AccessDenied';
 
 const PRESET_AVATARS = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
@@ -357,6 +358,16 @@ export function SettingsView() {
             />
           </div>
 
+          {!permissions.canManageWorkspace && (
+            <AccessDenied
+              inline
+              title="Workspace Settings Restricted"
+              description="You need Admin or Owner permissions to change workspace metadata and configuration."
+              requiredRole="Admin"
+              actionName="modify workspace settings"
+            />
+          )}
+
           {permissions.canManageWorkspace && (
             <div className="flex justify-end pt-2">
               <button
@@ -378,7 +389,15 @@ export function SettingsView() {
           Export application data to JSON backup or reset browser LocalStorage data back to factory mock state.
         </p>
 
-        {permissions.canManageWorkspace && (
+        {!permissions.canManageWorkspace ? (
+          <AccessDenied
+            inline
+            title="Data Management Restricted"
+            description="Exporting or resetting workspace data requires Owner privileges."
+            requiredRole="Owner"
+            actionName="reset workspace database"
+          />
+        ) : (
           <div className="space-y-4">
             <div className="flex items-center gap-3 flex-wrap">
               <button

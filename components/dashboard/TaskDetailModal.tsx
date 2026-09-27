@@ -26,6 +26,9 @@ import {
   Paperclip,
   Download,
   Loader2,
+  ArrowUpRight,
+  FolderInput,
+  CornerDownRight,
 } from 'lucide-react';
 
 export default function TaskDetailModal() {
@@ -37,6 +40,8 @@ export default function TaskDetailModal() {
   const toggleSubtaskInStore = useTaskStore((s) => s.toggleSubtask);
   const addSubtaskInStore = useTaskStore((s) => s.createSubtask);
   const deleteSubtaskInStore = useTaskStore((s) => s.deleteSubtask);
+  const convertSubtaskToTask = useTaskStore((s) => s.convertSubtaskToTask);
+  const convertTaskToSubtask = useTaskStore((s) => s.convertTaskToSubtask);
   const duplicateTaskInStore = useTaskStore((s) => s.duplicateTask);
   const updateTaskInStore = useTaskStore((s) => s.updateTask);
   const deleteTaskFromStore = useTaskStore((s) => s.deleteTask);
@@ -62,6 +67,8 @@ export default function TaskDetailModal() {
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [showConvertToSubtaskModal, setShowConvertToSubtaskModal] = useState(false);
+  const [targetParentTaskId, setTargetParentTaskId] = useState('');
 
   if (!selectedTaskId) return null;
 
@@ -246,6 +253,18 @@ export default function TaskDetailModal() {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowConvertToSubtaskModal(!showConvertToSubtaskModal)}
+              className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer ${
+                showConvertToSubtaskModal
+                  ? 'bg-amber-100 text-amber-900'
+                  : 'text-stone-500 hover:text-amber-700 hover:bg-stone-100'
+              }`}
+              title="Convert this task into a subtask of another task"
+            >
+              <FolderInput className="w-4 h-4" />
+              <span className="hidden sm:inline">Convert to Subtask</span>
+            </button>
+            <button
               onClick={handleDuplicateTask}
               className="p-1.5 rounded-lg text-stone-500 hover:text-amber-700 hover:bg-stone-100 transition-colors flex items-center gap-1 text-xs font-semibold"
               title="Duplicate task"
@@ -269,6 +288,51 @@ export default function TaskDetailModal() {
             </button>
           </div>
         </div>
+
+        {/* Convert Task to Subtask Panel */}
+        {showConvertToSubtaskModal && (
+          <div className="bg-amber-50/90 border-b border-amber-200 p-4 animation-fade-in">
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-900 mb-2">
+              <CornerDownRight className="w-4 h-4 text-amber-700" />
+              <span>Convert this task into a subtask of:</span>
+            </div>
+            <div className="flex gap-2">
+              <select
+                value={targetParentTaskId}
+                onChange={(e) => setTargetParentTaskId(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-xl border border-amber-300 bg-white text-xs font-medium text-stone-800 focus:outline-none"
+              >
+                <option value="">Select target parent task...</option>
+                {tasks
+                  .filter((t) => t.id !== task.id && (t.project_id === task.project_id || (t as any).projectId === (task as any).projectId))
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title}
+                    </option>
+                  ))}
+              </select>
+              <button
+                onClick={async () => {
+                  if (!targetParentTaskId) {
+                    toast.error('Please select a target parent task.');
+                    return;
+                  }
+                  await convertTaskToSubtask(task.id, targetParentTaskId);
+                  setSelectedTaskIdForModal(null);
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer active:scale-95"
+              >
+                Confirm Convert
+              </button>
+              <button
+                onClick={() => setShowConvertToSubtaskModal(false)}
+                className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Content Body */}
         <div className="p-6 overflow-y-auto space-y-6 text-sm font-sans flex-1">
@@ -427,8 +491,17 @@ export default function TaskDetailModal() {
                   </label>
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ml-2">
                     <button
+                      onClick={() => convertSubtaskToTask(task.id, st.id)}
+                      className="text-stone-400 hover:text-amber-700 hover:bg-amber-100/60 p-1.5 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                      title="Convert subtask to full independent task"
+                    >
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Make Task</span>
+                    </button>
+                    <button
                       onClick={() => handleDeleteSubtask(st.id)}
-                      className="text-stone-300 hover:text-rose-600 p-1 transition-colors"
+                      className="text-stone-300 hover:text-rose-600 p-1.5 rounded-lg transition-colors cursor-pointer"
+                      title="Delete subtask"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
